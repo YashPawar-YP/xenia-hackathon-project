@@ -1,144 +1,147 @@
-<<!--DOCTYPE html>
-<html>
-<head>
-    <title>Admin Dashboard</title>
-</head>
-<body>
-<a href="admin.html">Go to Home</a>
-<a href="viewusers.html">
-    <button type="button">ViewUsers</button>
-</a>
-    <h1>Admin Dashboard</h1>
-    <p>Welcome Admin! Manage clubs, events and users from here.</p>
 
-    <hr>
 
-    <h2>Navigation</h2>
-    <p>
-        <a href="#">Dashboard</a>
-        <a href="#">Manage Clubs</a>
-        <a href="#">Manage Events</a>
-    </p>
-
-    <table>
-        <thead>
-            <tr>
-                <th align="left">Club Name</th>
-                <th align="left">Description</th>
-                <th align="center">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>CSI Club</td>
-                <td>Programming and development</td>
-                <td>
-                    <button type="button">Edit</button>
-                    <button type="button">Delete</button>
-                </td>
-            </tr>
-            <tr>
-                <td>Finance Club</td>
-                <td>Financial literacy and investment</td>
-                <td>
-                    <button type="button">Edit</button>
-                    <button type="button">Delete</button>
-                </td>
-            </tr>
-            <tr>
-                <td>RO</td>
-                <td>Robotics and automation</td>
-                <td>
-                    <button type="button">Edit</button>
-                    <button type="button">Delete</button>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-
-    <br>
-    <p>#just the events</p>
-    
-    <table border="1">
-        <tr>
-            <th>Name</th>
-            <th>Role</th>
-            <th>Club</th>
-        </tr>
-    </table>
-
-</body>
-</html> -->
+<!--
 <!DOCTYPE html>
 <html>
 <head>
     <title>Admin Dashboard</title>
 </head>
 <body>
-    <a href="index.html">Go to Home</a>
-    
-    <a href="viewusers.html" target="_blank">
-        <button type="button">ViewUsers</button>
-    </a>
 
-    <h1>Admin Dashboard</h1>
-    <p>Welcome Admin! Manage clubs, events and users from here.</p>
+  
+    <table width="100%">
+        <tr>
+        
+            <td>
+                <h1>Admin Dashboard</h1>
+            </td>
+
+            <td align="right">
+                <b>Admin Name:</b> Nilesh<br>
+                <b>Admin ID:</b> ADM001
+            </td>
+        </tr>
+    </table>
 
     <hr>
 
-    <h2>Navigation</h2>
-    <p>
-        <a href="admin.html">Dashboard</a>
-        <a href="clubs.html">Manage Clubs</a>
-        <a href="#">Manage Events</a>
-    </p>
+    <a href="add_clubform.html" target ="_blank">
+        <button>Add Club</button>
+    </a>
 
-    <table>
-        <thead>
-            <tr>
-                <th align="left">Club Name</th>
-                <th align="left">Description</th>
-                <th align="center">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>CSI Club</td>
-                <td>Programming and development</td>
-                <td>
-                    <button type="button">Edit</button>
-                    <button type="button">Delete</button>
-                </td>
-            </tr>
-            <tr>
-                <td>Finance Club</td>
-                <td>Financial literacy and investment</td>
-                <td>
-                    <button type="button">Edit</button>
-                    <button type="button">Delete</button>
-                </td>
-            </tr>
-            <tr>
-                <td>RO</td>
-                <td>Robotics and automation</td>
-                <td>
-                    <button type="button">Edit</button>
-                    <button type="button">Delete</button>
-                </td>
-            </tr>
-        </tbody>
+    <a href="events.html"target="_blank">
+        <button>Add Event</button>
+    </a>
+
+    <hr>
+
+    
+    <h2>My Clubs</h2>
+
+    <table border="1" cellpadding="5">
+        <tr>
+            <th>Club Name</th>
+            <th>Description</th>
+            <th>Actions</th>
+        </tr>
+
+        <tr>
+            <td>CSI Club</td>
+            <td>Programming and Development</td>
+            <td>
+                <button>Delete Club</button>
+            </td>
+        </tr>
+
+        <tr>
+            <td>Robotics Club</td>
+            <td>Robotics and Automation</td>
+            <td>
+                <button>Delete Club</button>
+            </td>
+        </tr>
     </table>
 
     <br>
-    <p>The Events</p>
-    
-    <table border="1">
+
+
+    <h2>My Events</h2>
+
+    <table border="1" cellpadding="5">
         <tr>
-            <th>Name</th>
-            <th>Role</th>
+            <th>Event Name</th>
             <th>Club</th>
+            <th>Actions</th>
+        </tr>
+
+        <tr>
+            <td>Hackathon</td>
+            <td>CSI Club</td>
+            <td>
+                <button>Delete Event</button>
+            </td>
         </tr>
     </table>
 
 </body>
 </html>
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+</head>
+<body>
+
+    
+  
+    
+    <table width="100%">
+   <table width="100%">
+    <tr>
+        <!-- Left side -->
+        <td>
+            <p>Welcome, Admin</p>
+            <h1>Admin Dashboard</h1>
+        </td>
+
+        <!-- Right side -->
+        <td align="right">
+            <b>Admin Name:</b> Nilesh<br>
+            <b>Admin ID:</b> ADM001
+        </td>
+    </tr>
+</table>
+
+
+    </table>
+
+
+    <!-- Add Club Button -->
+    <a href="add_clubform.html"target="_blank">
+        <button>Add Club</button>
+
+    </a>
+        <a href="events.html"target="_blank">
+        <button>Add Event</button>
+    </a>
+
+    <hr>
+
+    <!-- My Clubs Section -->
+    <h2>My Clubs</h2>
+
+    <!-- Empty container / placeholder -->
+    <p>No clubs yet</p>
+
+    <h2>My Events</h2>
+
+    <!-- Empty container / placeholder -->
+    <p>No events yet</p>
+
+
+</body>
+</html>
+

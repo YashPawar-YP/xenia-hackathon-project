@@ -1,0 +1,100 @@
+/* Main page wrapper */
+.page {
+    width: 80%;
+    margin: auto;
+    padding: 30px;
+}
+
+/* Club header spacing */
+.club-header {
+    margin-bottom: 30px;
+}
+
+/* Tagline text */
+.tagline {
+    font-size: 18px;
+}
+
+/* Robotics header with background image */
+.robotics-bg {
+ background-image: url("https://images.unsplash.com/photo-1581092918056-0c4c3acd3789");
+
+
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    padding: 60px 30px;
+    border-radius: 16px;
+    color: white;
+
+    position: relative;
+}
+
+/* Dark overlay */
+.robotics-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background: rgba(0,0,0,0.45);
+    border-radius: 16px;
+}
+
+/* Keep text above overlay */
+.robotics-bg h1,
+.robotics-bg p {
+    position: relative;
+    z-index: 1;
+}
+
+/* Content sections */
+.section {
+    background: #ffffff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* Action button area */
+.action {
+    text-align: center;
+    margin: 30px 0;
+}
+
+
+
+
+
+/* CSI / Coding club background */
+.coding-bg {
+    background-image: url("https://images.unsplash.com/photo-1517694712202-14dd9538aa97");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    padding: 60px 30px;
+    border-radius: 16px;
+    color: white;
+
+    position: relative;
+}
+
+/* Dark overlay for coding background */
+.coding-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 16px;
+}
+
+/* Keep text above overlay */
+.coding-bg h1,
+.coding-bg p {
+    position: relative;
+    z-index: 1;
+}

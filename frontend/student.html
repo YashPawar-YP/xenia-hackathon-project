@@ -2,24 +2,177 @@
 <html>
 <head>
     <title>Student Dashboard</title>
-</head>
-<body>
-    <h1>Student Dashboard</h1>
-    <p>Welcome! You can explore clubs and register</p>
-    
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
-  <footer>
-    <hr>
-    <div>
-        <a href="index.html">
-            <button type="button">Home</button>
-        </a>
-        
-        <a href="clubs.html">
-            <button type="button">View Clubs</button>
-        </a>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #f8bbd0, #d1c4e9);
+            color: #333;
+        }
+
+        /* Page layout */
+        .container {
+            padding: 30px;
+        }
+
+        /* Top-right quick actions */
+        .quick-actions {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+        }
+
+        #toggle {
+            display: none;
+        }
+
+        .qa-button {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            width: 160px;
+            padding: 10px 14px;
+
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+        }
+
+        .qa-menu {
+            display: none;
+            margin-top: 10px;
+
+            background: white;
+            padding: 12px;
+            border-radius: 10px;
+            width: 200px;
+
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .qa-menu button {
+            width: 100%;
+            padding: 8px;
+            margin: 6px 0;
+            border: none;
+            border-radius: 5px;
+            background: #f3e5f5;
+            cursor: pointer;
+        }
+
+        #toggle:checked + label + .qa-menu {
+            display: block;
+        }
+
+        /* Summary cards */
+        .cards {
+            display: flex;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 180px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.9);
+        }
+
+        .count {
+            font-size: 28px;
+            font-weight: bold;
+            color: #6a1b9a;
+        }
+
+        /* Sections */
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        }
+
+        .notice {
+            background: #f3e5f5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- QUICK ACTIONS -->
+    <div class="quick-actions">
+        <input type="checkbox" id="toggle">
+
+        <label for="toggle" class="qa-button">
+            <span>Checkbox</span>
+            <span>⌄</span>
+        </label>
+
+        <div class="qa-menu">
+            <button>Club Registration</button>
+            <button>Event Registration</button>
+            <button>Feedback</button>
+        </div>
     </div>
-</footer>
+
+    <!-- MAIN CONTENT -->
+    <div class="container">
+        <h1>Student Dashboard</h1>
+        <p>Welcome! Manage your clubs and events from here.</p>
+
+        <!-- SUMMARY -->
+        <div class="cards">
+            <div class="card">
+                <h3>Clubs Joined</h3>
+                <p class="count">3</p>
+            </div>
+
+            <div class="card">
+                <h3>Events Registered</h3>
+                <p class="count">2</p>
+            </div>
+
+            <div class="card">
+                <h3>Upcoming Events</h3>
+                <p class="count">1</p>
+            </div>
+        </div>
+
+        <!-- UPCOMING EVENTS -->
+        <div class="section">
+            <h2>Upcoming Events</h2>
+            <ul>
+                <li><strong>Hackathon</strong> – 12 Oct</li>
+                <li><strong>Tech Talk</strong> – 15 Oct</li>
+            </ul>
+        </div>
+
+        <!-- RECENT ACTIVITY -->
+        <div class="section">
+            <h2>Recent Activity</h2>
+            <ul>
+                <li>You joined <strong>CSI Club</strong></li>
+                <li>You registered for <strong>Hackathon</strong></li>
+            </ul>
+        </div>
+
+        <!-- ANNOUNCEMENT -->
+        <div class="section notice">
+            <h2>Announcements</h2>
+            <p>⚠ Robotics Club registrations close in 2 days.</p>
+        </div>
+    </div>
+
 </body>
 </html>
+
+   
