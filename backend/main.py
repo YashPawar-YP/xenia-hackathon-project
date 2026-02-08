@@ -5,6 +5,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from passlib.context import CryptContext
 
+
+
 # at the top of main.py
 import bcrypt
 if not hasattr(bcrypt, "__about__"):
@@ -79,6 +81,15 @@ class ClubCreate(BaseModel):
 # App & DB dependency
 # ---------------------------
 app = FastAPI()
+from fastapi.middleware.cors import CORSMiddleware 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 def get_db():
     db = SessionLocal()
@@ -169,6 +180,12 @@ def club_members(club_id: int, db: Session = Depends(get_db)):
     pending = club.pending.split(",") if club.pending else []
 
     return {"members": members, "pending": pending}
+
+@app.delete("/clubs/clear")
+def clear_clubs(db: Session = Depends(get_db)):
+    db.query(Club).delete()
+    db.commit()
+    return {"message": "All clubs cleared"}
 
 # ---------------------------
 # Run with:

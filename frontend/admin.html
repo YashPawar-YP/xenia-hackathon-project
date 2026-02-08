@@ -150,9 +150,7 @@
     <!-- MY CLUBS -->
     <div class="section">
         <h2>My Clubs</h2>
-        <div class="empty-box">
-            No clubs added yet
-        </div>
+        <div class="class-card" id="myClubs"></div>
     </div>
 
     <!-- MY EVENTS -->
@@ -166,29 +164,7 @@
 </div>
 
 <!-- JAVASCRIPT -->
-<script>
-    // Fade-in animation on load
-    window.onload = function () {
-        document.querySelector(".fade-in").classList.add("show");
-    };
-
-    // Dynamic greeting
-    const adminName = "Nilesh";
-    const hour = new Date().getHours();
-
-    let greeting = "Welcome";
-    if (hour < 12) {
-        greeting = "Good Morning";
-    } else if (hour < 18) {
-        greeting = "Good Afternoon";
-    } else {
-        greeting = "Good Evening";
-    }
-
-    document.getElementById("greeting").innerText =
-        greeting + ", " + adminName;
-</script>
+<script src="./js/admin.js" defer></script>
 
 </body>
 </html>
-
