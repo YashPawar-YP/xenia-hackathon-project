@@ -24,14 +24,21 @@
             margin: 5px 0;
         }
 
-        .admin-info {
-            text-align: right;
-            font-size: 14px;
-        }
-
         /* Main layout */
         .dashboard {
             padding: 40px;
+        }
+
+        /* Fade-in animation */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+        }
+
+        .fade-in.show {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         /* Action cards */
@@ -76,6 +83,11 @@
             background-color: #125ea9;
         }
 
+        /* Button click effect */
+        button:active {
+            transform: scale(0.95);
+        }
+
         /* Sections */
         .section {
             background-color: white;
@@ -106,15 +118,13 @@
 <!-- HEADER -->
 <div class="header">
     <div>
-        <p>Welcome, Admin</p>
+        <p id="greeting"></p>
         <h1>Admin Dashboard</h1>
     </div>
-
-
 </div>
 
 <!-- MAIN DASHBOARD -->
-<div class="dashboard">
+<div class="dashboard fade-in">
 
     <!-- ACTIONS -->
     <div class="actions">
@@ -155,5 +165,30 @@
 
 </div>
 
+<!-- JAVASCRIPT -->
+<script>
+    // Fade-in animation on load
+    window.onload = function () {
+        document.querySelector(".fade-in").classList.add("show");
+    };
+
+    // Dynamic greeting
+    const adminName = "Nilesh";
+    const hour = new Date().getHours();
+
+    let greeting = "Welcome";
+    if (hour < 12) {
+        greeting = "Good Morning";
+    } else if (hour < 18) {
+        greeting = "Good Afternoon";
+    } else {
+        greeting = "Good Evening";
+    }
+
+    document.getElementById("greeting").innerText =
+        greeting + ", " + adminName;
+</script>
+
 </body>
 </html>
+
