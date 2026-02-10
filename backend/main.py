@@ -4,6 +4,7 @@ from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from passlib.context import CryptContext
+from typing import List
 
 
 
@@ -77,6 +78,14 @@ class ClubCreate(BaseModel):
     name: str
     description: str
 
+class ClubOut(BaseModel):
+    id: int
+    name: str
+    description: str
+
+    class Config:
+        orm_mode = True
+
 # ---------------------------
 # App & DB dependency
 # ---------------------------
@@ -141,7 +150,7 @@ def create_club(club: ClubCreate, db: Session = Depends(get_db)):
 
     return {"message": "Club created", "club_id": new_club.id}
 
-@app.get("/clubs")
+@app.get("/clubs", response_model=List[ClubOut])
 def list_clubs(db: Session = Depends(get_db)):
     clubs = db.query(Club).all()
     return clubs
