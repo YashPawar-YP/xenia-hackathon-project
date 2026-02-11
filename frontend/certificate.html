@@ -1,0 +1,19 @@
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+        </style>
+    </head>
+    <body>
+        <div class="certificate">
+            <h1>Certificate of Participation</h1>
+            <p style="font-size: 20px;">This is to certify that</p>
+            <h2>{user.name if user else 'Unknown'}</h2>
+            <p style="font-size: 18px;">has successfully participated in</p>
+            <h3>{event.title if event else 'Unknown Event'}</h3>
+            <p>Organized by {club.name if club else 'Unknown Club'}</p>
+            <p>Date: {event.event_date if event else 'N/A'}</p>
+            <p style="margin-top: 40px;">Issued on: {cert.issued_at}</p>
+        </div>
+    </body>
+    </html>
