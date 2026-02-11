@@ -10,7 +10,7 @@ import bcrypt
 
 # Bcrypt compatibility fix
 if not hasattr(bcrypt, "__about__"):
-    bcrypt.__about__ = type("about", (), {"__version__": "4.1.0"})()
+    bcrypt.__about__ = type("about", (), {"__version__": "4.1.2"})()
 
 # ---------------------------
 # Database setup
