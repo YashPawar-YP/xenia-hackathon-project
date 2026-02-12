@@ -27,7 +27,7 @@
     <br>
 
     <a href="admin.html">Back to Dashboard</a>
-    <script src="js/add_club.js"></script>
+   
 </body>
 </html>-->
 <!DOCTYPE html>
@@ -131,22 +131,33 @@
     <div class="form-container">
         <h1>Add Club</h1>
 
-        <form>
+        <form id="addClubForm">
             <div class="form-group">
                 <label for="clubName">Club Name</label>
                 <input type="text" id="clubName" placeholder="Enter club name">
             </div>
 
             <div class="form-group">
-                <label for="clubDesc">Club Description</label>
-                <textarea id="clubDesc" placeholder="Enter club description"></textarea>
+                <label for="clubDescription">Club Description</label>
+                <textarea id="clubDescription" placeholder="Enter club description"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="clubObjectives">Club Objectives</label>
+                <textarea id="clubObjectives" placeholder="Enter club objectives"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="clubActivities">Club Activities</label>
+                <textarea id="clubActivities" placeholder="Enter club activities"></textarea>
             </div>
 
             <button type="submit">Submit</button>
         </form>
 
-        <a href="student.html" class="back-link">Back to Dashboard</a>
+        <a href="admin.html" class="back-link">Back to Dashboard</a>
     </div>
+     <script src="js/add_club.js"></script>
 
 </body>
 </html>

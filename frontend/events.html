@@ -1,27 +1,246 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Add Event</title>
+    <title>Create Event</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .back-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .back-link:hover {
+            color: #764ba2;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="datetime-local"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="datetime-local"]:focus,
+        input[type="number"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-row .form-group {
+            margin-bottom: 0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .cancel-btn {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .cancel-btn:hover {
+            background: #d0d0d0;
+        }
+
+        .error {
+            color: #f44336;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        .success {
+            background: #4caf50;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+    </style>
 </head>
+
 <body>
 
-    <h1>Add Event</h1>
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1>Create Event</h1>
+        <a href="admin.html" class="back-link">← Back</a>
+    </div>
 
-    <form>
-        <label>Event Name:</label><br>
-        <input type="text" name="event_name"><br><br>
+    <!-- Success Message -->
+    <div class="success" id="successMessage">Event created successfully!</div>
 
-        <label>Event Description:</label><br>
-        <textarea name="event_description" rows="4" cols="40"></textarea><br><br>
+    <!-- Form -->
+    <form id="eventForm">
+        <!-- Club Selection -->
+        <div class="form-group">
+            <label for="club">Select Club *</label>
+            <select id="club" name="club" required>
+                <option value="">Loading clubs...</option>
+            </select>
+            <div class="info-text">Select a club to create an event for</div>
+            <div class="error" id="clubError"></div>
+        </div>
 
-        <label>Club Name:</label><br>
-        <input type="text" name="club_name"><br><br>
+        <!-- Event Title -->
+        <div class="form-group">
+            <label for="title">Event Title *</label>
+            <input type="text" id="title" name="title" placeholder="e.g., Web Development Workshop" required>
+            <div class="error" id="titleError"></div>
+        </div>
 
-        <button type="submit">Submit</button>
+        <!-- Event Description -->
+        <div class="form-group">
+            <label for="description">Event Description *</label>
+            <textarea id="description" name="description" placeholder="Describe the event, objectives, and what attendees will learn" required></textarea>
+            <div class="error" id="descriptionError"></div>
+        </div>
+
+        <!-- Event Date and Time -->
+        <div class="form-group">
+            <label for="eventDate">Event Date & Time *</label>
+            <input type="datetime-local" id="eventDate" name="eventDate" required>
+            <div class="error" id="eventDateError"></div>
+        </div>
+
+        <!-- Location and Capacity -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="location">Location *</label>
+                <input type="text" id="location" name="location" placeholder="e.g., Room 101, Building A" required>
+                <div class="error" id="locationError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="capacity">Capacity *</label>
+                <input type="number" id="capacity" name="capacity" placeholder="e.g., 50" min="1" required>
+                <div class="error" id="capacityError"></div>
+            </div>
+        </div>
+
+        <!-- Social Media Promo Text -->
+        <div class="form-group">
+            <label for="socialPromo">Social Media Promotion Text (Optional)</label>
+            <textarea id="socialPromo" name="socialPromo" placeholder="Pre-filled text for social media posts about this event"></textarea>
+            <div class="info-text">Leave empty to use auto-generated text</div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="button-group">
+            <button type="button" class="cancel-btn" onclick="window.location.href='admin.html'">Cancel</button>
+            <button type="submit" class="submit-btn">Create Event</button>
+        </div>
     </form>
+</div>
 
-    <br>
-    <a href="admin.html">Back to Dashboard</a>
+<script src="js/events.js"></script>
 
 </body>
 </html>

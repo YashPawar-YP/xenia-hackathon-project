@@ -54,7 +54,7 @@ class Event(Base):
     capacity = Column(Integer)
     registered_users = Column(String, default="")  # comma-separated user IDs
     attended_users = Column(String, default="")  # comma-separated user IDs
-    social_promo_text = Column(String, default="")  # Pre-filled social media post
+    social_promo_text = Column(String, default="")  # Pre-filled social media pos
 
 class Feedback(Base):
     __tablename__ = "feedback"
@@ -204,6 +204,8 @@ def is_admin(user_id: int, db: Session):
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
+from fastapi import Body
+
 # ---------------------------
 # User Routes
 # ---------------------------
@@ -228,13 +230,29 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user or not verify_password(user.password, db_user.password_hash):
         raise HTTPException(status_code=403, detail="Invalid credentials")
-    return {"message": "Login successful", "user_id": db_user.id, "role": db_user.role, "name": db_user.name}
+    return {"message": "Login successful", "user_id": db_user.id, "role": db_user.role, "name": db_user.name, "email": db_user.email}
+
 
 @app.get("/users/{user_id}")
 def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    return {"id": user.id, "name": user.name, "email": user.email, "role": user.role}
+
+# PATCH endpoint to update user role
+from pydantic import BaseModel
+class UserUpdateRole(BaseModel):
+    role: str
+
+@app.patch("/users/{user_id}")
+def update_user_role(user_id: int, update: UserUpdateRole, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.role = update.role
+    db.commit()
+    db.refresh(user)
     return {"id": user.id, "name": user.name, "email": user.email, "role": user.role}
 
 # ---------------------------
@@ -258,8 +276,11 @@ def create_club(club: ClubCreate, db: Session = Depends(get_db)):
     return {"message": "Club created", "club_id": new_club.id}
 
 @app.get("/clubs")
-def list_clubs(db: Session = Depends(get_db)):
-    clubs = db.query(Club).all()
+def list_clubs(admin_id: Optional[int] = None, db: Session = Depends(get_db)):
+    if admin_id:
+        clubs = db.query(Club).filter(Club.admin_id == admin_id).all()
+    else:
+        clubs = db.query(Club).all()
     result = []
     for club in clubs:
         members = club.members.split(",") if club.members else []
@@ -270,7 +291,9 @@ def list_clubs(db: Session = Depends(get_db)):
             "description": club.description,
             "objectives": club.objectives,
             "activities": club.activities,
-            "member_count": member_count
+            "admin_id": club.admin_id,
+            "member_count": member_count,
+            "members": club.members
         })
     return result
 
@@ -291,6 +314,7 @@ def get_club(club_id: int, db: Session = Depends(get_db)):
         "activities": club.activities,
         "admin_id": club.admin_id,
         "member_count": member_count,
+        "pending": club.pending,
         "social_links": club.social_links
     }
 
@@ -314,8 +338,23 @@ def join_club(club_id: int, user_id: int, db: Session = Depends(get_db)):
     
     # Notify club admin
     create_notification(db, club.admin_id, f"New join request for {club.name}")
+
+@app.post("/clubs/{club_id}/leave")
+def leave_club(club_id: int, user_id: int, db: Session = Depends(get_db)):
+    club = db.query(Club).filter(Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
     
-    return {"message": "Join request sent"}
+    members = club.members.split(",") if club.members else []
+    
+    if str(user_id) not in members:
+        raise HTTPException(status_code=400, detail="You are not a member of this club")
+    
+    members.remove(str(user_id))
+    club.members = ",".join(members)
+    db.commit()
+    
+    return {"message": "Successfully left the club"}
 
 @app.post("/clubs/{club_id}/approve/{user_id}")
 def approve_member(club_id: int, user_id: int, admin_id: int, db: Session = Depends(get_db)):

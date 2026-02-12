@@ -98,6 +98,38 @@ body {
     transition: right 0.4s ease;
 }
 
+.club-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.club-name {
+    flex: 1;
+    color: #333;
+    font-size: 14px;
+}
+
+.leave-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #ff6b6b;
+    color: white;
+    transition: 0.3s;
+    margin-left: 8px;
+    white-space: nowrap;
+}
+
+.leave-btn:hover {
+    background: #ff5252;
+    transform: scale(1.05);
+}
+
 /* Hover trigger area */
 .sidebar-hover-zone {
     position: fixed;
@@ -308,43 +340,6 @@ body {
 
 <body>
 
-<!-- REGISTER BUTTON (TOP RIGHT) -->
-<button class="register-btn-top" onclick="openRegisterModal()">📝 Register</button>
-
-<!-- REGISTRATION MODAL -->
-<div id="registerModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Student Registration</h2>
-            <button class="close-btn" onclick="closeRegisterModal()">&times;</button>
-        </div>
-        <form id="registrationForm">
-            <div class="form-group">
-                <label for="studentName">Full Name</label>
-                <input type="text" id="studentName" placeholder="Enter your full name" required>
-            </div>
-            <div class="form-group">
-                <label for="collegeYear">College Year</label>
-                <select id="collegeYear" required>
-                    <option value="">Select your year</option>
-                    <option value="1st Year">1st Year</option>
-                    <option value="2nd Year">2nd Year</option>
-                    <option value="3rd Year">3rd Year</option>
-                    <option value="4th Year">4th Year</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="collegeName">College Name</label>
-                <input type="text" id="collegeName" placeholder="Enter your college name" required>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="cancel-btn" onclick="closeRegisterModal()">Cancel</button>
-                <button type="submit" class="submit-btn">Register</button>
-            </div>
-        </form>
-    </div>
-</div>
-
 <!-- Invisible hover zone -->
 <div class="sidebar-hover-zone"></div>
 
@@ -353,39 +348,34 @@ body {
     <h2>Student Panel</h2>
 
     <div class="profile-box">
-        <b>Name:</b> <span id="sidebarName">Kartik</span> <br>
-        <b>Year:</b> <span id="sidebarYear">-</span> <br>
-        <b>College:</b> <span id="sidebarCollege">-</span>
+        <b>Name:</b> <span id="sidebarName">Loading...</span>
     </div>
 
     <div class="section">
         <h3>Registered Clubs</h3>
-        <ul>
-            <li>CSI Club</li>
-            <li>Finance Club</li>
-        </ul>
+        <div id="clubsList">
+            <div style="color: #666; font-size: 14px;">Loading clubs...</div>
+        </div>
     </div>
 
     <div class="section">
         <h3>Events Joined</h3>
-        <ul>
-            <li>Hackathon 2026</li>
-            <li>Stock Market Marathon</li>
-        </ul>
+        <div id="eventsList">
+            <div style="color: #666; font-size: 14px;">Loading events...</div>
+        </div>
     </div>
 
     <div class="section">
         <h3>Feedback Given</h3>
         <ul>
-            <li>CSI Hackathon ⭐⭐⭐⭐</li>
-            <li>Finance Workshop ⭐⭐⭐⭐</li>
+            <li>Coming soon...</li>
         </ul>
     </div>
 </div>
 
 <!-- MAIN CONTENT -->
 <div class="main-container">
-    <a href="login.html" style="text-decoration:none;">
+    <a href="login_student.html" style="text-decoration:none;">
         <button class="back-btn">← Back to Login</button>
     </a>
     <h1 id="greeting"></h1>
@@ -394,9 +384,14 @@ body {
         and track your participation and feedback — all in one place.
     </p>
 
-    <a href="clublist.html" style="text-decoration:none;">
-        <button class="primary-btn">Explore & Join Clubs</button>
-    </a>
+    <div style="display: flex; gap: 15px; margin-bottom: 30px;">
+        <a href="clublist.html" style="text-decoration:none; flex: 1;">
+            <button class="primary-btn" style="width: 100%;">Explore & Join Clubs</button>
+        </a>
+        <a href="events_list.html" style="text-decoration:none; flex: 1;">
+            <button class="primary-btn" style="width: 100%; background: #ff9800;">Browse Events</button>
+        </a>
+    </div>
 
     <div class="footer-text">
         Tip: Hover near the right edge to view your activity panel →
@@ -407,68 +402,143 @@ body {
 <script>
 const hour = new Date().getHours();
 let greet = "Welcome";
-let studentName = "Kartik";
+let studentName = "Guest";
+let userId = null;
 
 if (hour < 12) greet = "Good Morning";
 else if (hour < 18) greet = "Good Afternoon";
 else greet = "Good Evening";
 
-// Load student data from localStorage if available
+// Load student data from localStorage (from login/registration)
 function loadStudentData() {
-    const savedData = localStorage.getItem('studentData');
-    if (savedData) {
-        const data = JSON.parse(savedData);
-        studentName = data.name;
-        document.getElementById("sidebarName").innerText = data.name;
-        document.getElementById("sidebarYear").innerText = data.year;
-        document.getElementById("sidebarCollege").innerText = data.college;
+    // Get name from login/registration
+    const userName = localStorage.getItem('user_name');
+    if (userName) {
+        studentName = userName;
+        document.getElementById("sidebarName").innerText = userName;
+    }
+    
+    // Get user ID for filtering clubs
+    userId = localStorage.getItem('user_id');
+    console.log("User ID:", userId);
+}
+
+// Fetch and display registered clubs
+async function loadRegisteredClubs() {
+    if (!userId) {
+        document.getElementById("clubsList").innerHTML = "<div style='color: #666; font-size: 14px;'>Please log in</div>";
+        return;
+    }
+    
+    try {
+        const response = await fetch("http://127.0.0.1:8000/clubs");
+        const clubs = await response.json();
+        console.log("All clubs:", clubs);
+        
+        // Filter clubs where user is registered
+        const registeredClubs = clubs.filter(club => {
+            const members = club.members ? club.members.split(",") : [];
+            const isRegistered = members.includes(String(userId));
+            console.log(`Club ${club.name} members:`, members, "User ${userId} registered:", isRegistered);
+            return isRegistered;
+        });
+        
+        console.log("Registered clubs:", registeredClubs);
+        
+        // Display clubs
+        const clubsList = document.getElementById("clubsList");
+        if (registeredClubs.length === 0) {
+            clubsList.innerHTML = "<div style='color: #666; font-size: 14px;'>No clubs registered yet</div>";
+        } else {
+            clubsList.innerHTML = registeredClubs
+                .map(club => `
+                    <div class="club-item">
+                        <span class="club-name">${club.name}</span>
+                        <button class="leave-btn" onclick="leaveClub(${club.id}, '${club.name}')">Leave</button>
+                    </div>
+                `)
+                .join("");
+        }
+    } catch (error) {
+        console.error("Error loading clubs:", error);
+        document.getElementById("clubsList").innerHTML = "<div style='color: red; font-size: 14px;'>Error loading clubs</div>";
     }
 }
 
-function openRegisterModal() {
-    document.getElementById("registerModal").classList.add("show");
-}
-
-function closeRegisterModal() {
-    document.getElementById("registerModal").classList.remove("show");
-    document.getElementById("registrationForm").reset();
-}
-
-// Close modal when clicking outside of it
-window.onclick = function(event) {
-    const modal = document.getElementById("registerModal");
-    if (event.target === modal) {
-        closeRegisterModal();
+// Leave club function
+async function leaveClub(clubId, clubName) {
+    if (!confirm(`Are you sure you want to leave ${clubName}?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`http://127.0.0.1:8000/clubs/${clubId}/leave?user_id=${userId}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+        
+        const data = await response.json();
+        if (response.ok) {
+            alert("Successfully left the club!");
+            loadRegisteredClubs(); // Reload the clubs list
+        } else {
+            alert(data.detail || "Error leaving the club");
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Error leaving the club");
     }
 }
 
-// Handle form submission
-document.getElementById("registrationForm").addEventListener("submit", function(e) {
-    e.preventDefault();
+// Fetch and display registered events
+async function loadRegisteredEvents() {
+    if (!userId) {
+        document.getElementById("eventsList").innerHTML = "<div style='color: #666; font-size: 14px;'>Please log in</div>";
+        return;
+    }
     
-    const studentData = {
-        name: document.getElementById("studentName").value,
-        year: document.getElementById("collegeYear").value,
-        college: document.getElementById("collegeName").value
-    };
-    
-    // Save to localStorage (will connect to backend later)
-    localStorage.setItem('studentData', JSON.stringify(studentData));
-    
-    // Update sidebar
-    document.getElementById("sidebarName").innerText = studentData.name;
-    document.getElementById("sidebarYear").innerText = studentData.year;
-    document.getElementById("sidebarCollege").innerText = studentData.college;
-    
-    // Update greeting
-    studentName = studentData.name;
-    document.getElementById("greeting").innerText = greet + ", " + studentName + " 👋";
-    
-    closeRegisterModal();
-});
+    try {
+        const response = await fetch(`http://127.0.0.1:8000/users/${userId}/events`);
+        const data = await response.json();
+        console.log("User events response:", data);
+        
+        // Get registered events from response
+        const registeredEvents = data.registered_events || data || [];
+        console.log("Registered events:", registeredEvents);
+        
+        // Display events
+        const eventsList = document.getElementById("eventsList");
+        if (registeredEvents.length === 0) {
+            eventsList.innerHTML = "<div style='color: #666; font-size: 14px;'>No events registered yet. <a href='events_list.html' style='color: #667eea; text-decoration: none;'>Browse events →</a></div>";
+        } else {
+            eventsList.innerHTML = `<div style="display: flex; flex-direction: column; gap: 10px;">
+                ${registeredEvents.map(event => {
+                    const eventDate = new Date(event.event_date);
+                    const formattedDate = eventDate.toLocaleString();
+                    return `
+                        <div style="background: rgba(100, 200, 255, 0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #667eea;">
+                            <strong>${event.title}</strong>
+                            ${event.attended ? '<span style="background: #4caf50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 8px;">✓ Attended</span>' : ''}
+                            <br>
+                            <small style="color: #666;">📅 ${formattedDate}</small><br>
+                            <small style="color: #666;">📍 ${event.location}</small>
+                        </div>
+                    `;
+                }).join("")}
+            </div>`;
+        }
+    } catch (error) {
+        console.error("Error loading events:", error);
+        document.getElementById("eventsList").innerHTML = "<div style='color: red; font-size: 14px;'>Error loading events</div>";
+    }
+}
 
 // Initialize page
 loadStudentData();
+loadRegisteredClubs();
+loadRegisteredEvents();
 document.getElementById("greeting").innerText =
     greet + ", " + studentName + " 👋";
 </script>
