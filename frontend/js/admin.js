@@ -32,11 +32,13 @@ async function loadClubs(){
     if (!container) return;
 
     const adminId = localStorage.getItem('user_id');
-    const url = adminId 
-        ? `http://127.0.0.1:8000/clubs?admin_id=${adminId}`
-        : "http://127.0.0.1:8000/clubs";
-
+    
     try {
+        const apiUrl = await getWorkingApiUrl();
+        const url = adminId 
+            ? `${apiUrl}/clubs?admin_id=${adminId}`
+            : `${apiUrl}/clubs`;
+        
         const response = await fetch(url);
         const clubs = await response.json();
        
@@ -75,8 +77,10 @@ async function loadPendingRequests() {
     console.log("Loading pending requests for admin ID:", adminId);
 
     try {
+        const apiUrl = await getWorkingApiUrl();
+        
         // Get all clubs for this admin
-        const clubsResponse = await fetch(`http://127.0.0.1:8000/clubs?admin_id=${adminId}`);
+        const clubsResponse = await fetch(`${apiUrl}/clubs?admin_id=${adminId}`);
         console.log("Clubs response status:", clubsResponse.status);
         
         if (!clubsResponse.ok) {
@@ -93,7 +97,7 @@ async function loadPendingRequests() {
             console.log("Processing club:", club.name, "ID:", club.id);
             
             try {
-                const clubResponse = await fetch(`http://127.0.0.1:8000/clubs/${club.id}`);
+                const clubResponse = await fetch(`${apiUrl}/clubs/${club.id}`);
                 console.log("Club response status:", clubResponse.status);
                 
                 if (!clubResponse.ok) continue;
@@ -109,7 +113,7 @@ async function loadPendingRequests() {
                 for (const userId of pendingIds) {
                     try {
                         console.log("Fetching user:", userId.trim());
-                        const userResponse = await fetch(`http://127.0.0.1:8000/users/${userId.trim()}`);
+                        const userResponse = await fetch(`${apiUrl}/users/${userId.trim()}`);
                         console.log("User response status:", userResponse.status);
                         
                         if (userResponse.ok) {
@@ -174,8 +178,9 @@ async function approveRequest(clubId, userId, userName) {
     const adminId = localStorage.getItem('user_id');
 
     try {
+        const apiUrl = await getWorkingApiUrl();
         const response = await fetch(
-            `http://127.0.0.1:8000/clubs/${clubId}/approve/${userId}?admin_id=${adminId}`,
+            `${apiUrl}/clubs/${clubId}/approve/${userId}?admin_id=${adminId}`,
             { method: 'POST' }
         );
 
@@ -201,8 +206,9 @@ async function rejectRequest(clubId, userId, userName) {
     const adminId = localStorage.getItem('user_id');
 
     try {
+        const apiUrl = await getWorkingApiUrl();
         const response = await fetch(
-            `http://127.0.0.1:8000/clubs/${clubId}/reject/${userId}?admin_id=${adminId}`,
+            `${apiUrl}/clubs/${clubId}/reject/${userId}?admin_id=${adminId}`,
             { method: 'POST' }
         );
 
@@ -233,8 +239,10 @@ async function loadEvents() {
     }
 
     try {
+        const apiUrl = await getWorkingApiUrl();
+        
         // Get all clubs for this admin
-        const clubsResponse = await fetch(`http://127.0.0.1:8000/clubs?admin_id=${adminId}`);
+        const clubsResponse = await fetch(`${apiUrl}/clubs?admin_id=${adminId}`);
         
         if (!clubsResponse.ok) {
             container.innerHTML = "<p style='text-align: center; color: #999;'>No events yet</p>";
@@ -250,7 +258,7 @@ async function loadEvents() {
         }
 
         // Get all events
-        const eventsResponse = await fetch("http://127.0.0.1:8000/events");
+        const eventsResponse = await fetch(`${apiUrl}/events`);
         if (!eventsResponse.ok) {
             container.innerHTML = "<p style='text-align: center; color: #999;'>No events yet</p>";
             return;
@@ -307,8 +315,9 @@ async function deleteEvent(eventId, eventTitle) {
     const adminId = localStorage.getItem('user_id');
 
     try {
+        const apiUrl = await getWorkingApiUrl();
         const response = await fetch(
-            `http://127.0.0.1:8000/events/${eventId}?admin_id=${adminId}`,
+            `${apiUrl}/events/${eventId}?admin_id=${adminId}`,
             { method: 'DELETE' }
         );
 
@@ -325,4 +334,118 @@ async function deleteEvent(eventId, eventTitle) {
     }
 }
 
- 
+// Populate feedback event dropdown
+async function populateEventDropdown() {
+    const adminId = localStorage.getItem('user_id');
+    const select = document.getElementById('feedbackEventSelect');
+    
+    if (!select || !adminId) return;
+    
+    try {
+        const apiUrl = await getWorkingApiUrl();
+        
+        // Get admin's clubs
+        const clubsResponse = await fetch(`${apiUrl}/clubs?admin_id=${adminId}`);
+        const clubs = await clubsResponse.json();
+        const adminClubIds = clubs.map(c => c.id);
+        
+        // Get all events
+        const eventsResponse = await fetch(`${apiUrl}/events`);
+        const allEvents = await eventsResponse.json();
+        
+        // Filter to show only events from admin's clubs
+        const adminEvents = allEvents.filter(e => adminClubIds.includes(e.club_id));
+        
+        // Clear and populate dropdown
+        select.innerHTML = '<option value="">Select an event...</option>';
+        
+        adminEvents.forEach(event => {
+            const option = document.createElement('option');
+            option.value = event.id;
+            option.textContent = `${event.title} (${event.club_name})`;
+            select.appendChild(option);
+        });
+        
+        console.log("Populated event dropdown with", adminEvents.length, "events");
+    } catch (error) {
+        console.error("Error populating event dropdown:", error);
+        select.innerHTML = '<option value="">Error loading events</option>';
+    }
+}
+
+// Load and display feedback for selected event
+async function loadSelectedEventFeedback() {
+    const select = document.getElementById('feedbackEventSelect');
+    const eventId = select.value;
+    const container = document.getElementById('feedbackContainer');
+    
+    if (!eventId) {
+        alert('Please select an event first');
+        return;
+    }
+    
+    try {
+        const apiUrl = await getWorkingApiUrl();
+        const response = await fetch(`${apiUrl}/events/${eventId}/feedback`);
+        
+        if (!response.ok) {
+            container.innerHTML = '<p style="color: #999; text-align: center;">No feedback yet for this event</p>';
+            return;
+        }
+        
+        const feedbacks = await response.json();
+        
+        if (!feedbacks || feedbacks.length === 0) {
+            container.innerHTML = '<p style="color: #999; text-align: center;">No feedback yet for this event</p>';
+            return;
+        }
+        
+        // Calculate summary
+        const avgRating = (feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length).toFixed(1);
+        
+        // Display summary
+        let html = `
+            <div class="feedback-summary">
+                <h3>Feedback Summary</h3>
+                <p><strong>Average Rating:</strong> ${avgRating} / 5 ⭐</p>
+                <p><strong>Total Feedback:</strong> ${feedbacks.length}</p>
+            </div>
+            <div class="feedback-list">
+        `;
+        
+        // Display individual feedbacks
+        feedbacks.forEach(feedback => {
+            const stars = '⭐'.repeat(feedback.rating) + '☆'.repeat(5 - feedback.rating);
+            html += `
+                <div class="feedback-item">
+                    <div class="feedback-header">
+                        <strong>${feedback.user_name}</strong>
+                        <span class="feedback-rating">${stars} (${feedback.rating}/5)</span>
+                    </div>
+                    <div class="feedback-comment">${feedback.comment}</div>
+                    <small style="color: #999;">${new Date(feedback.created_at).toLocaleString()}</small>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+    } catch (error) {
+        console.error("Error loading feedback:", error);
+        container.innerHTML = '<p style="color: red;">Error loading feedback</p>';
+    }
+}
+
+// Reload event dropdown
+async function reloadEventDropdown() {
+    await populateEventDropdown();
+    document.getElementById('feedbackEventSelect').value = '';
+    document.getElementById('feedbackContainer').innerHTML = '';
+}
+
+// Initialize feedback dropdown on page load
+window.addEventListener("DOMContentLoaded", function() {
+    setTimeout(() => {
+        populateEventDropdown();
+    }, 1000); // Wait for other things to load first
+});

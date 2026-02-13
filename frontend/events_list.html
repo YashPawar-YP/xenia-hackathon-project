@@ -228,6 +228,28 @@
             margin-top: 10px;
         }
 
+        .attended-badge {
+            display: inline-block;
+            background: #2196F3;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 10px;
+            margin-left: 8px;
+        }
+
+        .past-badge {
+            display: inline-block;
+            background: #9c27b0;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 10px;
+            margin-left: 8px;
+        }
+
         .full-badge {
             display: inline-block;
             background: #f44336;
@@ -253,6 +275,176 @@
             text-align: center;
             padding: 40px;
             color: #666;
+        }
+
+        /* Feedback Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 500px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #667eea;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        /* Star Rating Styles */
+        .star-container {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            font-size: 32px;
+        }
+
+        .star {
+            cursor: pointer;
+            color: #ddd;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .star:hover,
+        .star.active {
+            color: #ffc107;
+            transform: scale(1.1);
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: "Segoe UI", Arial, sans-serif;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 8px rgba(102, 126, 234, 0.2);
+        }
+
+        /* Modal Footer */
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .submit-btn,
+        .cancel-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .cancel-btn {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .cancel-btn:hover {
+            background: #d0d0d0;
+        }
+
+        /* Feedback Button */
+        .feedback-btn {
+            background: #ff9800;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-top: 5px;
+        }
+
+        .feedback-btn:hover {
+            background: #e68900;
+            transform: translateY(-2px);
         }
     </style>
 </head>
@@ -281,8 +473,45 @@
     <div class="events-grid" id="eventsGrid">
         <div class="loading">Loading events...</div>
     </div>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Submit Feedback</h2>
+                <button class="close-btn" onclick="closeFeedbackModal()">&times;</button>
+            </div>
+            <p style="margin-bottom: 20px; color: #666;">Event: <strong id="feedbackEventTitle"></strong></p>
+            
+            <form id="feedbackForm">
+                <div class="form-group">
+                    <label>How would you rate this event?</label>
+                    <div id="starContainer" class="star-container">
+                        <span class="star" data-rating="1">⭐</span>
+                        <span class="star" data-rating="2">⭐</span>
+                        <span class="star" data-rating="3">⭐</span>
+                        <span class="star" data-rating="4">⭐</span>
+                        <span class="star" data-rating="5">⭐</span>
+                    </div>
+                    <input type="hidden" id="ratingValue" value="0">
+                </div>
+
+                <div class="form-group">
+                    <label for="feedbackComment">Your Feedback (required)</label>
+                    <textarea id="feedbackComment" name="comment" rows="5" placeholder="Share your thoughts about this event..." required></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="submit-btn">Submit Feedback</button>
+                    <button type="button" class="cancel-btn" onclick="closeFeedbackModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
+<script src="js/config.js"></script>
+<script src="js/feedback.js"></script>
 <script src="js/events_list.js"></script>
 
 </body>

@@ -264,6 +264,53 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return {"id": user.id, "name": user.name, "email": user.email, "role": user.role}
 
+@app.get("/users/{user_id}/events")
+def get_user_events(user_id: int, db: Session = Depends(get_db)):
+    """Get all registered and attended events for a user"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    all_events = db.query(Event).all()
+    registered_events = []
+    attended_events = []
+    
+    user_id_str = str(user_id)
+    for event in all_events:
+        registered = event.registered_users.split(",") if event.registered_users else []
+        attended = event.attended_users.split(",") if event.attended_users else []
+        
+        if user_id_str in registered:
+            club = db.query(Club).filter(Club.id == event.club_id).first()
+            registered_events.append({
+                "id": event.id,
+                "club_id": event.club_id,
+                "club_name": club.name if club else "Unknown",
+                "title": event.title,
+                "description": event.description,
+                "event_date": event.event_date,
+                "location": event.location,
+                "capacity": event.capacity
+            })
+        
+        if user_id_str in attended:
+            club = db.query(Club).filter(Club.id == event.club_id).first()
+            attended_events.append({
+                "id": event.id,
+                "club_id": event.club_id,
+                "club_name": club.name if club else "Unknown",
+                "title": event.title,
+                "description": event.description,
+                "event_date": event.event_date,
+                "location": event.location,
+                "capacity": event.capacity
+            })
+    
+    return {
+        "registered_events": registered_events,
+        "attended_events": attended_events
+    }
+
 # ---------------------------
 # Super Admin Routes
 # ---------------------------
@@ -591,6 +638,25 @@ def list_events(db: Session = Depends(get_db)):
         })
     return result
 
+@app.get("/events/calendar/{year}/{month}")
+def event_calendar(year: int, month: int, db: Session = Depends(get_db)):
+    events = db.query(Event).all()
+    month_events = []
+    
+    for event in events:
+        event_dt = datetime.fromisoformat(event.event_date.replace('Z', '+00:00'))
+        if event_dt.year == year and event_dt.month == month:
+            club = db.query(Club).filter(Club.id == event.club_id).first()
+            month_events.append({
+                "id": event.id,
+                "title": event.title,
+                "club_name": club.name if club else "Unknown",
+                "event_date": event.event_date,
+                "location": event.location
+            })
+    
+    return {"year": year, "month": month, "events": month_events}
+
 @app.get("/events/{event_id}")
 def get_event(event_id: int, db: Session = Depends(get_db)):
     event = db.query(Event).filter(Event.id == event_id).first()
@@ -614,25 +680,6 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
         "registered_count": registered_count,
         "social_promo_text": event.social_promo_text
     }
-
-@app.get("/events/calendar/{year}/{month}")
-def event_calendar(year: int, month: int, db: Session = Depends(get_db)):
-    events = db.query(Event).all()
-    month_events = []
-    
-    for event in events:
-        event_dt = datetime.fromisoformat(event.event_date.replace('Z', '+00:00'))
-        if event_dt.year == year and event_dt.month == month:
-            club = db.query(Club).filter(Club.id == event.club_id).first()
-            month_events.append({
-                "id": event.id,
-                "title": event.title,
-                "club_name": club.name if club else "Unknown",
-                "event_date": event.event_date,
-                "location": event.location
-            })
-    
-    return {"year": year, "month": month, "events": month_events}
 
 @app.post("/events/{event_id}/register")
 def register_for_event(event_id: int, user_id: int, db: Session = Depends(get_db)):

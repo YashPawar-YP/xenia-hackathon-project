@@ -1,5 +1,6 @@
 let allEvents = [];
 let registeredEventIds = [];
+let attendedEventIds = [];
 const userId = localStorage.getItem('user_id');
 
 // Load all events and registered events on page load
@@ -25,7 +26,8 @@ window.addEventListener("DOMContentLoaded", async function() {
 // Load all available events
 async function loadEvents() {
     try {
-        const response = await fetch("http://127.0.0.1:8000/events");
+        const apiUrl = await getWorkingApiUrl();
+        const response = await fetch(`${apiUrl}/events`);
         if (response.ok) {
             allEvents = await response.json();
             console.log("Loaded events:", allEvents);
@@ -42,16 +44,22 @@ async function loadEvents() {
     }
 }
 
-// Load user's registered events
+// Load user's registered and attended events
 async function loadRegisteredEvents() {
     try {
-        const response = await fetch(`http://127.0.0.1:8000/users/${userId}/events`);
+        const apiUrl = await getWorkingApiUrl();
+        const response = await fetch(`${apiUrl}/users/${userId}/events`);
         if (response.ok) {
             const data = await response.json();
             // Handle both response formats
-            const userEvents = data.registered_events || data || [];
-            registeredEventIds = userEvents.map(event => event.id);
+            const registeredEvents = data.registered_events || [];
+            const attendedEvents = data.attended_events || [];
+            
+            registeredEventIds = registeredEvents.map(event => event.id);
+            attendedEventIds = attendedEvents.map(event => event.id);
+            
             console.log("Registered events:", registeredEventIds);
+            console.log("Attended events:", attendedEventIds);
         }
     } catch (error) {
         console.error("Error loading registered events:", error);
@@ -78,7 +86,15 @@ function displayEvents(eventsToDisplay) {
         const formattedDate = eventDate.toLocaleString();
         const isFull = event.registered_count >= event.capacity;
         const isRegistered = registeredEventIds.includes(event.id);
+        const isAttended = attendedEventIds.includes(event.id);
         const spotsLeft = event.capacity - event.registered_count;
+        
+        // Check if event has passed
+        const now = new Date();
+        const eventHasPassed = eventDate < now;
+        
+        // Allow feedback if registered AND event has passed
+        const canGiveFeedback = isRegistered && eventHasPassed;
 
         return `
             <div class="event-card">
@@ -110,12 +126,18 @@ function displayEvents(eventsToDisplay) {
                     <div class="capacity-text">${spotsLeft > 0 ? `${spotsLeft} spots left` : 'Event is full'}</div>
 
                     ${isRegistered ? `<div class="registered-badge">✓ You're registered</div>` : ''}
+                    ${isAttended ? `<div class="attended-badge">✓ You attended</div>` : ''}
+                    ${eventHasPassed && isRegistered ? `<div class="past-badge">📅 Event Passed</div>` : ''}
                     ${isFull && !isRegistered ? `<div class="full-badge">Event Full</div>` : ''}
 
                     <div class="event-actions">
-                        ${isRegistered 
-                            ? `<button class="cancel-btn" onclick="cancelRegistration(${event.id}, '${event.title}')">Cancel</button>`
-                            : `<button class="register-btn" onclick="registerForEvent(${event.id}, '${event.title}')" ${isFull ? 'disabled' : ''}>Register</button>`
+                        ${canGiveFeedback
+                            ? `<button class="feedback-btn" onclick="openFeedbackModal(${event.id}, '${event.title.replace(/'/g, "\\'")}')" title="Share your feedback">⭐ Leave Feedback</button>`
+                            : ''
+                        }
+                        ${isRegistered && !canGiveFeedback
+                            ? `<button class="cancel-btn" onclick="cancelRegistration(${event.id}, '${event.title}')">Cancel Registration</button>`
+                            : !isRegistered ? `<button class="register-btn" onclick="registerForEvent(${event.id}, '${event.title}')" ${isFull ? 'disabled' : ''}>Register</button>` : ''
                         }
                     </div>
                 </div>
@@ -132,7 +154,8 @@ async function registerForEvent(eventId, eventTitle) {
     }
 
     try {
-        const response = await fetch(`http://127.0.0.1:8000/events/${eventId}/register?user_id=${userId}`, {
+        const apiUrl = await getWorkingApiUrl();
+        const response = await fetch(`${apiUrl}/events/${eventId}/register?user_id=${userId}`, {
             method: "POST"
         });
 
@@ -140,7 +163,8 @@ async function registerForEvent(eventId, eventTitle) {
 
         if (response.ok) {
             alert(`Successfully registered for "${eventTitle}"!`);
-            registeredEventIds.push(eventId);
+            // Reload registered events to ensure cache is fresh
+            await loadRegisteredEvents();
             displayEvents(allEvents);
         } else {
             alert(data.detail || "Error registering for event");
@@ -158,7 +182,8 @@ async function cancelRegistration(eventId, eventTitle) {
     }
 
     try {
-        const response = await fetch(`http://127.0.0.1:8000/events/${eventId}/register/${userId}`, {
+        const apiUrl = await getWorkingApiUrl();
+        const response = await fetch(`${apiUrl}/events/${eventId}/register/${userId}`, {
             method: "DELETE"
         });
 
@@ -166,7 +191,8 @@ async function cancelRegistration(eventId, eventTitle) {
 
         if (response.ok) {
             alert("Registration cancelled!");
-            registeredEventIds = registeredEventIds.filter(id => id !== eventId);
+            // Reload registered events to ensure cache is fresh
+            await loadRegisteredEvents();
             displayEvents(allEvents);
         } else {
             alert(data.detail || "Error cancelling registration");

@@ -9,7 +9,8 @@ async function loadAdminClubs() {
     }
 
     try {
-        const response = await fetch(`http://127.0.0.1:8000/clubs?admin_id=${adminId}`);
+        const apiUrl = await getWorkingApiUrl();
+        const response = await fetch(`${apiUrl}/clubs?admin_id=${adminId}`);
         const clubs = await response.json();
 
         clubSelect.innerHTML = '<option value="">Select a club...</option>';
@@ -87,7 +88,8 @@ document.getElementById("eventForm").addEventListener("submit", async function(e
     const isoDateTime = new Date(eventDate).toISOString();
 
     try {
-        const response = await fetch(`http://127.0.0.1:8000/events?admin_id=${adminId}`, {
+        const apiUrl = await getWorkingApiUrl();
+        const response = await fetch(`${apiUrl}/events?admin_id=${adminId}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

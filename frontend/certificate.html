@@ -1,19 +1,351 @@
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-        </style>
-    </head>
-    <body>
-        <div class="certificate">
-            <h1>Certificate of Participation</h1>
-            <p style="font-size: 20px;">This is to certify that</p>
-            <h2>{user.name if user else 'Unknown'}</h2>
-            <p style="font-size: 18px;">has successfully participated in</p>
-            <h3>{event.title if event else 'Unknown Event'}</h3>
-            <p>Organized by {club.name if club else 'Unknown Club'}</p>
-            <p>Date: {event.event_date if event else 'N/A'}</p>
-            <p style="margin-top: 40px;">Issued on: {cert.issued_at}</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate of Participation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Segoe UI", "Georgia", serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .certificate-container {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .certificate-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 40px 30px;
+            border-bottom: 3px solid #f4a460;
+        }
+
+        .certificate-header h1 {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .certificate-header p {
+            font-size: 18px;
+            opacity: 0.95;
+            letter-spacing: 1px;
+        }
+
+        .certificate-content {
+            padding: 60px 50px;
+            text-align: center;
+        }
+
+        .certificate-intro {
+            font-size: 18px;
+            color: #666;
+            font-style: italic;
+            margin-bottom: 30px;
+        }
+
+        .certificate-recipient {
+            margin: 40px 0;
+        }
+
+        .certificate-recipient h2 {
+            font-size: 42px;
+            color: #764ba2;
+            font-weight: 700;
+            margin: 20px 0;
+            text-decoration: underline;
+            text-decoration-color: #f4a460;
+            text-decoration-thickness: 3px;
+            text-underline-offset: 8px;
+        }
+
+        .certificate-achievement {
+            margin: 40px 0;
+        }
+
+        .certificate-achievement p {
+            font-size: 16px;
+            color: #333;
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+
+        .achievement-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+            margin: 20px 0 10px 0;
+        }
+
+        .event-title {
+            font-size: 28px;
+            color: #764ba2;
+            font-weight: 700;
+            margin: 15px 0;
+        }
+
+        .organization-text {
+            font-size: 14px;
+            color: #666;
+            margin: 20px 0 5px 0;
+        }
+
+        .event-date {
+            font-size: 14px;
+            color: #999;
+            margin: 10px 0;
+        }
+
+        .certificate-footer {
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 2px solid #e0e0e0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .signature {
+            text-align: center;
+            flex: 1;
+        }
+
+        .signature-line {
+            width: 150px;
+            height: 2px;
+            background: #333;
+            margin: 10px auto;
+        }
+
+        .signature-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .issued-date {
+            text-align: center;
+            flex: 1;
+            font-size: 13px;
+            color: #999;
+        }
+
+        .certificate-badge {
+            text-align: center;
+            flex: 1;
+        }
+
+        .badge {
+            display: inline-block;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #f4a460 0%, #ff8c42 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 40px;
+            box-shadow: 0 4px 15px rgba(244, 164, 96, 0.4);
+        }
+
+        .decorative-border {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea 0%, #f4a460 50%, #764ba2 100%);
+        }
+
+        .decorative-corner {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 2px solid #667eea;
+        }
+
+        .decorative-corner.top-left {
+            top: 20px;
+            left: 20px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .decorative-corner.top-right {
+            top: 20px;
+            right: 20px;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .decorative-corner.bottom-left {
+            bottom: 20px;
+            left: 20px;
+            border-right: none;
+            border-top: none;
+        }
+
+        .decorative-corner.bottom-right {
+            bottom: 20px;
+            right: 20px;
+            border-left: none;
+            border-top: none;
+        }
+
+        .print-button-container {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+        }
+
+        .print-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .print-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .print-btn:active {
+            transform: translateY(0);
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .certificate-container {
+                box-shadow: none;
+                border-radius: 0;
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            .print-button-container {
+                display: none;
+            }
+
+            .certificate-header {
+                border-bottom: 5px solid #f4a460;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .certificate-header h1 {
+                font-size: 32px;
+            }
+
+            .certificate-content {
+                padding: 40px 25px;
+            }
+
+            .certificate-recipient h2 {
+                font-size: 28px;
+            }
+
+            .event-title {
+                font-size: 20px;
+            }
+
+            .certificate-footer {
+                flex-direction: column;
+                gap: 30px;
+            }
+
+            .signature, .issued-date, .certificate-badge {
+                flex: 1 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="certificate-container">
+        <div class="decorative-corner top-left"></div>
+        <div class="decorative-corner top-right"></div>
+        <div class="decorative-corner bottom-left"></div>
+        <div class="decorative-corner bottom-right"></div>
+
+        <div class="certificate-header">
+            <h1>🏆 CERTIFICATE OF ACHIEVEMENT</h1>
+            <p>This prestigious award is presented to</p>
         </div>
-    </body>
-    </html>
+
+        <div class="certificate-content">
+            <div class="certificate-intro">
+                <p>This certificate is proudly presented to</p>
+            </div>
+
+            <div class="certificate-recipient">
+                <h2>{user.name if user else 'Unknown'}</h2>
+            </div>
+
+            <div class="certificate-achievement">
+                <p class="achievement-text">For successfully participating in</p>
+                <div class="event-title">{event.title if event else 'Unknown Event'}</div>
+                <p class="organization-text">Organized by <strong>{club.name if club else 'Unknown Club'}</strong></p>
+                <p class="event-date">Date: {event.event_date if event else 'N/A'}</p>
+            </div>
+
+            <div class="certificate-footer">
+                <div class="signature">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Director Signature</div>
+                </div>
+
+                <div class="certificate-badge">
+                    <div class="badge">⭐</div>
+                </div>
+
+                <div class="issued-date">
+                    <p><strong>Issued Date</strong></p>
+                    <p>{cert.issued_at if 'cert' in locals() else 'N/A'}</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 40px; font-size: 12px; color: #999; font-style: italic;">
+                "Celebrating excellence and achievement in student engagement"
+            </div>
+        </div>
+    </div>
+
+    <div class="print-button-container">
+        <button class="print-btn" onclick="window.print()">🖨️ Print Certificate</button>
+    </div>
+</body>
+</html>

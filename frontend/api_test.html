@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Connectivity Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #ddd;
+        }
+        .test-result.success {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .test-result.error {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .test-result.pending {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .debug-output {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Backend API Connectivity Diagnostic</h1>
+        <p>This page tests which backend URLs are accessible from your browser.</p>
+
+        <button onclick="runTests()">Run All Tests</button>
+        
+        <h2>Test Results:</h2>
+        <div id="results"></div>
+
+        <h2>Configuration:</h2>
+        <p>Primary URL: <code>http://127.0.0.1:8000</code></p>
+        <p>Fallback URLs:</p>
+        <ul>
+            <li><code>http://localhost:8000</code></li>
+            <li><code>http://localhost:8001</code></li>
+            <li><code>http://127.0.0.1:8001</code></li>
+        </ul>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+        function addResult(url, success, message, details = '') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'test-result ' + (success ? 'success' : 'error');
+            
+            let html = `<strong>${url}</strong><br>`;
+            html += success ? '✓ Connected successfully' : '✗ Connection failed';
+            html += '<br>' + message;
+            
+            if (details) {
+                html += '<div class="debug-output">' + details + '</div>';
+            }
+            
+            resultDiv.innerHTML = html;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        async function testUrl(url) {
+            try {
+                console.log(`Testing ${url}...`);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                
+                const response = await fetch(`${url}/clubs`, {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                addResult(url, true, `Status code: ${response.status}`, `Response received successfully. Server is reachable.`);
+                return true;
+            } catch (error) {
+                let errorDetails = `Error type: ${error.name}\n`;
+                errorDetails += `Error message: ${error.message}\n`;
+                errorDetails += `Stack: ${error.stack}`;
+                
+                addResult(url, false, error.message, errorDetails);
+                return false;
+            }
+        }
+
+        async function runTests() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="test-result pending">Testing connections...</div>';
+            
+            const urlsToTest = [
+                'http://127.0.0.1:8000',
+                'http://localhost:8000',
+                'http://localhost:8001',
+                'http://127.0.0.1:8001'
+            ];
+            
+            resultsDiv.innerHTML = '';
+            
+            for (const url of urlsToTest) {
+                await testUrl(url);
+            }
+            
+            // Also test the auto-detected URL
+            try {
+                const workingUrl = await getWorkingApiUrl();
+                const resultsDiv = document.getElementById('results');
+                const autoDiv = document.createElement('div');
+                autoDiv.className = 'test-result success';
+                autoDiv.innerHTML = `<strong>Auto-detected working URL:</strong><br>${workingUrl}`;
+                resultsDiv.appendChild(autoDiv);
+            } catch (error) {
+                console.log('Auto-detection failed:', error.message);
+            }
+        }
+
+        // Run tests on page load
+        window.addEventListener('load', () => {
+            console.log('API Test page loaded. Click "Run All Tests" to start testing.');
+        });
+    </script>
+</body>
+</html>
