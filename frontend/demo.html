@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Club Page</title>
+    <link rel="stylesheet" href="club.css">
+</head>
+<body>
+
+<div class="page-container">
+
+    <!-- LEFT SIDE -->
+    <div class="club-content">
+
+        <h1 id="clubName"></h1>
+        <p class="tagline" id="tagline"></p>
+
+        <hr>
+
+        <div id="aboutSection" class="section hidden">
+            <h2>About the Club</h2>
+            <p id="about"></p>
+        </div>
+
+        <div id="activitiesSection" class="section hidden">
+            <h2>What We Do</h2>
+            <ul id="activities"></ul>
+        </div>
+
+        <div id="eventsSection" class="section hidden">
+            <h2>Upcoming Events</h2>
+            <ul id="events"></ul>
+        </div>
+
+    </div>
+
+    <!-- RIGHT SIDE -->
+    <div class="sidebar">
+
+        <div class="join-box">
+            <h3 id="joinTitle"></h3>
+            <p>Become a part of the community.</p>
+            <button>Request to Join</button>
+        </div>
+
+        <div class="feedback-box">
+            <h3>Give Feedback</h3>
+            <textarea id="feedbackText" placeholder="Write your feedback..."></textarea>
+            <button onclick="submitFeedback()">Submit</button>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="club.js"></script>
+</body>
+</html>
+*/
