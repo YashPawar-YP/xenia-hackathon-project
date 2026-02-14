@@ -23,7 +23,7 @@ document.addEventListener('click', function(event) {
 });
 
 function joinClub(clubId) {
-    const userId = localStorage.getItem('user_id');
+    const userId = sessionStorage.getItem('user_id') || localStorage.getItem('user_id');
     if (!userId) {
         alert('Please log in first to join a club');
         window.location.href = 'login_student.html';

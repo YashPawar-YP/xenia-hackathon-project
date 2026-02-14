@@ -8,12 +8,12 @@ document.addEventListener("DOMContentLoaded", function() {
         return;
     }
 
-    // Populate user data from localStorage
-    const userId = localStorage.getItem('user_id');
-    const userName = localStorage.getItem('user_name');
-    const userEmail = localStorage.getItem('user_email');
+    // Populate user data from sessionStorage or localStorage
+    const userId = sessionStorage.getItem('user_id') || localStorage.getItem('user_id');
+    const userName = sessionStorage.getItem('user_name') || localStorage.getItem('user_name');
+    const userEmail = sessionStorage.getItem('user_email') || localStorage.getItem('user_email');
 
-    if (!userId || !userName || !userEmail) {
+    if (!userId || !userName) {
         showError("You must be logged in to request membership.");
         setTimeout(() => {
             window.location.href = "login_student.html";
@@ -86,9 +86,11 @@ async function submitJoinRequest(clubId) {
         if (response.ok) {
             showSuccess("Your request has been sent! The club admin will review it shortly.");
             document.getElementById('joinRequestForm').reset();
-            document.getElementById('fullName').value = localStorage.getItem('user_name');
+            const storedUserName = sessionStorage.getItem('user_name') || localStorage.getItem('user_name');
+            const storedUserEmail = sessionStorage.getItem('user_email') || localStorage.getItem('user_email');
+            document.getElementById('fullName').value = storedUserName;
             document.getElementById('userId').value = userId;
-            document.getElementById('email').value = localStorage.getItem('user_email');
+            document.getElementById('email').value = storedUserEmail;
             
             // Redirect back to student dashboard after 2 seconds
             setTimeout(() => {

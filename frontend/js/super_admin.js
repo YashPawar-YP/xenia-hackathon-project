@@ -9,11 +9,21 @@ window.addEventListener("DOMContentLoaded", () => {
     
     // Get and convert superAdminId to integer
     const storedId = localStorage.getItem('user_id');
+    const storedRole = localStorage.getItem('user_role');
     superAdminId = storedId ? parseInt(storedId) : null;
     
     const userName = localStorage.getItem('user_name') || "Super Admin";
     
     if (!superAdminId) {
+        console.warn("No user ID found in localStorage");
+        window.location.href = "super_admin_login.html";
+        return;
+    }
+
+    // Verify that the user actually has super_admin role
+    if (storedRole !== 'super_admin') {
+        console.error("User role is not super_admin. Current role:", storedRole);
+        alert('Access denied. You must be logged in as a Super Admin.');
         window.location.href = "super_admin_login.html";
         return;
     }
@@ -33,6 +43,14 @@ window.addEventListener("DOMContentLoaded", () => {
     document.getElementById("user-info").innerText = userName + " (Super Admin) - ID: " + superAdminId;
 
     loadDashboardData();
+    
+    // Reload data when returning to the tab
+    document.addEventListener("visibilitychange", function() {
+        if (document.visibilityState === "visible") {
+            console.log("User returned to super admin tab, reloading data...");
+            loadDashboardData();
+        }
+    });
 });
 
 // Show alert message
@@ -55,19 +73,46 @@ function showAlert(message, type = 'info') {
 // Load all dashboard data
 async function loadDashboardData() {
     try {
-        const apiUrl = await getWorkingApiUrl();
+        let apiUrl;
+        try {
+            apiUrl = await getWorkingApiUrl();
+        } catch (e) {
+            console.error("Failed to get API URL:", e);
+            showAlert('Unable to connect to server', 'error');
+            return;
+        }
         
         console.log("Loading dashboard for super admin ID:", superAdminId, "Type:", typeof superAdminId);
+        console.log("User role:", localStorage.getItem('user_role'));
         
         // Fetch dashboard statistics
-        const dashResponse = await fetch(
-            `${apiUrl}/superadmin/dashboard?super_admin_id=${superAdminId}`
-        );
+        const dashUrl = `${apiUrl}/superadmin/dashboard?super_admin_id=${superAdminId}`;
+        console.log("Dashboard URL:", dashUrl);
+        
+        let dashResponse;
+        try {
+            dashResponse = await fetch(dashUrl);
+        } catch (e) {
+            console.error("Failed to fetch dashboard:", e);
+            showAlert('Failed to connect to server', 'error');
+            return;
+        }
+        
+        console.log("Dashboard response status:", dashResponse.status);
         
         if (!dashResponse.ok) {
             const errorText = await dashResponse.text();
             console.error("Dashboard response not ok:", dashResponse.status, errorText);
-            throw new Error('Failed to load dashboard: ' + dashResponse.status);
+            
+            if (dashResponse.status === 403) {
+                showAlert('Access denied. Super Admin access required. Please log in again.', 'error');
+                setTimeout(() => {
+                    window.location.href = 'super_admin_login.html';
+                }, 2000);
+            } else {
+                showAlert('Failed to load dashboard: ' + dashResponse.status, 'error');
+            }
+            return;
         }
 
         const dashData = await dashResponse.json();
@@ -81,29 +126,52 @@ async function loadDashboardData() {
         // Load users
         await loadAllUsers();
     } catch (error) {
-        console.error("Error loading dashboard:", error);
-        showAlert('Error loading dashboard data: ' + error.message, 'error');
+        console.error("Unexpected error loading dashboard:", error);
+        showAlert('Unexpected error: ' + error.message, 'error');
     }
 }
 
 // Load all users
 async function loadAllUsers() {
     try {
-        const apiUrl = await getWorkingApiUrl();
+        let apiUrl;
+        try {
+            apiUrl = await getWorkingApiUrl();
+        } catch (e) {
+            console.error("Failed to get API URL:", e);
+            showAlert('Unable to connect to server', 'error');
+            return;
+        }
         
         console.log("Loading users for super admin ID:", superAdminId, "Type:", typeof superAdminId);
         
         const url = `${apiUrl}/superadmin/users?super_admin_id=${superAdminId}`;
-        console.log("Fetching from URL:", url);
+        console.log("Users URL:", url);
         
-        const response = await fetch(url);
+        let response;
+        try {
+            response = await fetch(url);
+        } catch (e) {
+            console.error("Failed to fetch users:", e);
+            showAlert('Failed to connect to server', 'error');
+            return;
+        }
 
         console.log("Users response status:", response.status);
 
         if (!response.ok) {
             const errorText = await response.text();
             console.error("Error response:", errorText);
-            throw new Error('Failed to load users: ' + response.status + ' - ' + errorText);
+            
+            if (response.status === 403) {
+                showAlert('Access denied. Super Admin access required.', 'error');
+                setTimeout(() => {
+                    window.location.href = 'super_admin_login.html';
+                }, 2000);
+            } else {
+                showAlert('Failed to load users: ' + response.status, 'error');
+            }
+            return;
         }
 
         const users = await response.json();
@@ -112,7 +180,7 @@ async function loadAllUsers() {
         const tbody = document.getElementById('usersTableBody');
         const emptyMessage = document.getElementById('empty-users-message');
 
-        if (!users || users.length === 0) {
+        if (!Array.isArray(users) || users.length === 0) {
             tbody.innerHTML = '';
             emptyMessage.style.display = 'block';
             return;
@@ -182,8 +250,8 @@ async function loadAllUsers() {
             tbody.appendChild(row);
         });
     } catch (error) {
-        console.error("Error loading users:", error);
-        showAlert('Error loading users: ' + error.message, 'error');
+        console.error("Unexpected error loading users:", error);
+        showAlert('Unexpected error loading users: ' + error.message, 'error');
     }
 }
 

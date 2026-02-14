@@ -81,104 +81,7 @@ body {
 }
 
 /* ---------- FLOATING SIDEBAR ---------- */
-.sidebar {
-    position: fixed;
-    top: 0;
-    right: -300px;
-    width: 300px;
-    height: 100vh;
-
-    background: rgba(255, 255, 255, 0.45);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-
-    box-shadow: -10px 0 25px rgba(0,0,0,0.25);
-    padding: 25px;
-
-    transition: right 0.4s ease;
-}
-
-.club-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
-}
-
-.club-name {
-    flex: 1;
-    color: #333;
-    font-size: 14px;
-}
-
-.leave-btn {
-    padding: 4px 8px;
-    font-size: 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    background: #ff6b6b;
-    color: white;
-    transition: 0.3s;
-    margin-left: 8px;
-    white-space: nowrap;
-}
-
-.leave-btn:hover {
-    background: #ff5252;
-    transform: scale(1.05);
-}
-
-/* Hover trigger area */
-.sidebar-hover-zone {
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 25px;
-    height: 100vh;
-    z-index: 5;
-}
-
-/* Show sidebar on hover */
-.sidebar-hover-zone:hover + .sidebar,
-.sidebar:hover {
-    right: 0;
-}
-
-/* ---------- SIDEBAR CONTENT ---------- */
-.sidebar h2 {
-    margin-top: 0;
-    color: #222;
-}
-
-.profile-box {
-    background: rgba(255,255,255,0.6);
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-}
-
-.section {
-    margin-bottom: 20px;
-}
-
-.section h3 {
-    margin-bottom: 8px;
-    color: #1e88e5;
-    font-size: 16px;
-}
-
-.section ul {
-    padding-left: 18px;
-    margin: 0;
-}
-
-.section li {
-    font-size: 14px;
-    color: #333;
-    margin-bottom: 5px;
-}
+/* REMOVED - Sidebar panel functionality removed */
 
 /* ---------- REGISTER BUTTON (TOP LEFT) ---------- */
 .register-btn-top {
@@ -340,39 +243,6 @@ body {
 
 <body>
 
-<!-- Invisible hover zone -->
-<div class="sidebar-hover-zone"></div>
-
-<!-- FLOATING SIDEBAR -->
-<div class="sidebar">
-    <h2>Student Panel</h2>
-
-    <div class="profile-box">
-        <b>Name:</b> <span id="sidebarName">Loading...</span>
-    </div>
-
-    <div class="section">
-        <h3>Registered Clubs</h3>
-        <div id="clubsList">
-            <div style="color: #666; font-size: 14px;">Loading clubs...</div>
-        </div>
-    </div>
-
-    <div class="section">
-        <h3>Events Joined</h3>
-        <div id="eventsList">
-            <div style="color: #666; font-size: 14px;">Loading events...</div>
-        </div>
-    </div>
-
-    <div class="section">
-        <h3>Feedback Given</h3>
-        <ul>
-            <li>Coming soon...</li>
-        </ul>
-    </div>
-</div>
-
 <!-- MAIN CONTENT -->
 <div class="main-container">
     <a href="login_student.html" style="text-decoration:none;">
@@ -394,7 +264,7 @@ body {
     </div>
 
     <div class="footer-text">
-        Tip: Hover near the right edge to view your activity panel →
+        My Clubs | Events | Community
     </div>
 </div>
 
@@ -409,136 +279,7 @@ if (hour < 12) greet = "Good Morning";
 else if (hour < 18) greet = "Good Afternoon";
 else greet = "Good Evening";
 
-// Load student data from localStorage (from login/registration)
-function loadStudentData() {
-    // Get name from login/registration
-    const userName = localStorage.getItem('user_name');
-    if (userName) {
-        studentName = userName;
-        document.getElementById("sidebarName").innerText = userName;
-    }
-    
-    // Get user ID for filtering clubs
-    userId = localStorage.getItem('user_id');
-    console.log("User ID:", userId);
-}
-
-// Fetch and display registered clubs
-async function loadRegisteredClubs() {
-    if (!userId) {
-        document.getElementById("clubsList").innerHTML = "<div style='color: #666; font-size: 14px;'>Please log in</div>";
-        return;
-    }
-    
-    try {
-        const response = await fetch("http://127.0.0.1:8000/clubs");
-        const clubs = await response.json();
-        console.log("All clubs:", clubs);
-        
-        // Filter clubs where user is registered
-        const registeredClubs = clubs.filter(club => {
-            const members = club.members ? club.members.split(",") : [];
-            const isRegistered = members.includes(String(userId));
-            console.log(`Club ${club.name} members:`, members, "User ${userId} registered:", isRegistered);
-            return isRegistered;
-        });
-        
-        console.log("Registered clubs:", registeredClubs);
-        
-        // Display clubs
-        const clubsList = document.getElementById("clubsList");
-        if (registeredClubs.length === 0) {
-            clubsList.innerHTML = "<div style='color: #666; font-size: 14px;'>No clubs registered yet</div>";
-        } else {
-            clubsList.innerHTML = registeredClubs
-                .map(club => `
-                    <div class="club-item">
-                        <span class="club-name">${club.name}</span>
-                        <button class="leave-btn" onclick="leaveClub(${club.id}, '${club.name}')">Leave</button>
-                    </div>
-                `)
-                .join("");
-        }
-    } catch (error) {
-        console.error("Error loading clubs:", error);
-        document.getElementById("clubsList").innerHTML = "<div style='color: red; font-size: 14px;'>Error loading clubs</div>";
-    }
-}
-
-// Leave club function
-async function leaveClub(clubId, clubName) {
-    if (!confirm(`Are you sure you want to leave ${clubName}?`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`http://127.0.0.1:8000/clubs/${clubId}/leave?user_id=${userId}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            }
-        });
-        
-        const data = await response.json();
-        if (response.ok) {
-            alert("Successfully left the club!");
-            loadRegisteredClubs(); // Reload the clubs list
-        } else {
-            alert(data.detail || "Error leaving the club");
-        }
-    } catch (error) {
-        console.error("Error:", error);
-        alert("Error leaving the club");
-    }
-}
-
-// Fetch and display registered events
-async function loadRegisteredEvents() {
-    if (!userId) {
-        document.getElementById("eventsList").innerHTML = "<div style='color: #666; font-size: 14px;'>Please log in</div>";
-        return;
-    }
-    
-    try {
-        const response = await fetch(`http://127.0.0.1:8000/users/${userId}/events`);
-        const data = await response.json();
-        console.log("User events response:", data);
-        
-        // Get registered events from response
-        const registeredEvents = data.registered_events || data || [];
-        console.log("Registered events:", registeredEvents);
-        
-        // Display events
-        const eventsList = document.getElementById("eventsList");
-        if (registeredEvents.length === 0) {
-            eventsList.innerHTML = "<div style='color: #666; font-size: 14px;'>No events registered yet. <a href='events_list.html' style='color: #667eea; text-decoration: none;'>Browse events →</a></div>";
-        } else {
-            eventsList.innerHTML = `<div style="display: flex; flex-direction: column; gap: 10px;">
-                ${registeredEvents.map(event => {
-                    const eventDate = new Date(event.event_date);
-                    const formattedDate = eventDate.toLocaleString();
-                    return `
-                        <div style="background: rgba(100, 200, 255, 0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #667eea;">
-                            <strong>${event.title}</strong>
-                            ${event.attended ? '<span style="background: #4caf50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 8px;">✓ Attended</span>' : ''}
-                            <br>
-                            <small style="color: #666;">📅 ${formattedDate}</small><br>
-                            <small style="color: #666;">📍 ${event.location}</small>
-                        </div>
-                    `;
-                }).join("")}
-            </div>`;
-        }
-    } catch (error) {
-        console.error("Error loading events:", error);
-        document.getElementById("eventsList").innerHTML = "<div style='color: red; font-size: 14px;'>Error loading events</div>";
-    }
-}
-
 // Initialize page
-loadStudentData();
-loadRegisteredClubs();
-loadRegisteredEvents();
 document.getElementById("greeting").innerText =
     greet + ", " + studentName + " 👋";
 </script>

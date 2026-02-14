@@ -35,16 +35,22 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
         console.log("Response data:", data);
         
         if (response.ok) {
-            // Store user info in localStorage
-            localStorage.setItem('user_id', data.user_id);
-            localStorage.setItem('user_name', data.name);
-            localStorage.setItem('user_role', data.role);
-            localStorage.setItem('user_email', data.email || '');
+            // Determine storage mode based on role
+            // Admins use localStorage (persistent across tabs)
+            // Students use sessionStorage (isolated per tab)
+            const isAdmin = data.role === "admin" || data.role === "club_admin" || data.role === "super_admin";
+            const storage = isAdmin ? localStorage : sessionStorage;
+            
+            // Store user info
+            storage.setItem('user_id', data.user_id);
+            storage.setItem('user_name', data.name);
+            storage.setItem('user_role', data.role);
+            storage.setItem('user_email', data.email || '');
             
             // Login successful, redirect based on role
             if (data.role === "student") {
                 window.location.href = "student.html";
-            } else if (data.role === "admin" || data.role === "club_admin" || data.role === "super_admin") {
+            } else if (isAdmin) {
                 window.location.href = "admin.html";
             } else {
                 alert("Login successful, but unknown role: " + data.role);

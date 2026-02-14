@@ -19,7 +19,7 @@ async function openFeedbackModal(eventId, eventTitle, eventDate) {
     }
     
     // Check if user is registered for this event
-    const userId = localStorage.getItem('user_id');
+    const userId = sessionStorage.getItem('user_id') || localStorage.getItem('user_id');
     try {
         const apiUrl = await getWorkingApiUrl();
         const eventResponse = await fetch(`${apiUrl}/events/${eventId}`);
@@ -119,7 +119,7 @@ function setupStarRating() {
 async function submitFeedback(e) {
     e.preventDefault();
 
-    const userId = localStorage.getItem('user_id');
+    const userId = sessionStorage.getItem('user_id') || localStorage.getItem('user_id');
     const rating = document.getElementById('ratingValue').value;
 
     if (!rating) {

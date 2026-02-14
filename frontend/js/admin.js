@@ -5,6 +5,16 @@
         loadEvents();
     });
 
+    // Reload data when user returns to the tab
+    document.addEventListener("visibilitychange", function() {
+        if (document.visibilityState === "visible") {
+            console.log("User returned to tab, reloading data...");
+            loadClubs();
+            loadPendingRequests();
+            loadEvents();
+        }
+    });
+
     console.log("Admin dashboard loaded");
 
     // Dynamic greeting
@@ -34,17 +44,39 @@ async function loadClubs(){
     const adminId = localStorage.getItem('user_id');
     
     try {
-        const apiUrl = await getWorkingApiUrl();
+        let apiUrl;
+        try {
+            apiUrl = await getWorkingApiUrl();
+        } catch (e) {
+            console.error("Failed to get API URL:", e);
+            container.innerHTML = "<p style='text-align: center; color: #999;'>Unable to connect to server</p>";
+            return;
+        }
+        
         const url = adminId 
             ? `${apiUrl}/clubs?admin_id=${adminId}`
             : `${apiUrl}/clubs`;
         
-        const response = await fetch(url);
+        let response;
+        try {
+            response = await fetch(url);
+        } catch (e) {
+            console.error("Failed to fetch clubs:", e);
+            container.innerHTML = "<p style='text-align: center; color: #999;'>Failed to load clubs</p>";
+            return;
+        }
+        
+        if (!response.ok) {
+            console.warn("Response not ok:", response.status);
+            container.innerHTML = "<p style='text-align: center; color: #999;'>No clubs added yet</p>";
+            return;
+        }
+        
         const clubs = await response.json();
        
         container.innerHTML = "";
         
-        if (clubs.length === 0){
+        if (!Array.isArray(clubs) || clubs.length === 0){
             container.innerHTML = "<p style='text-align: center; color: #999;'>No clubs added yet</p>";
             return;
         }
@@ -64,8 +96,8 @@ async function loadClubs(){
             container.appendChild(div);
         });
     } catch (err) {
-        console.error("Error loading clubs:", err);
-        container.innerHTML = "<p style='color: red;'>Error loading clubs</p>";
+        console.error("Unexpected error loading clubs:", err);
+        container.innerHTML = "<p style='color: red;'>Unexpected error. Check console for details.</p>";
     }
 }
 
@@ -77,19 +109,41 @@ async function loadPendingRequests() {
     console.log("Loading pending requests for admin ID:", adminId);
 
     try {
-        const apiUrl = await getWorkingApiUrl();
+        let apiUrl;
+        try {
+            apiUrl = await getWorkingApiUrl();
+        } catch (e) {
+            console.error("Failed to get API URL:", e);
+            container.innerHTML = "<p style='text-align: center; color: #999;'>Unable to connect to server</p>";
+            return;
+        }
         
         // Get all clubs for this admin
-        const clubsResponse = await fetch(`${apiUrl}/clubs?admin_id=${adminId}`);
+        let clubsResponse;
+        try {
+            clubsResponse = await fetch(`${apiUrl}/clubs?admin_id=${adminId}`);
+        } catch (e) {
+            console.error("Failed to fetch clubs:", e);
+            container.innerHTML = "<p style='text-align: center; color: #999;'>Failed to load clubs</p>";
+            return;
+        }
+        
         console.log("Clubs response status:", clubsResponse.status);
         
         if (!clubsResponse.ok) {
+            console.warn("Clubs response not ok:", clubsResponse.status);
             container.innerHTML = "<p style='text-align: center; color: #999;'>No clubs found</p>";
             return;
         }
 
         const clubs = await clubsResponse.json();
         console.log("Admin clubs:", clubs);
+        
+        if (!Array.isArray(clubs) || clubs.length === 0) {
+            container.innerHTML = "<p style='text-align: center; color: #999;'>No pending requests</p>";
+            return;
+        }
+        
         let allPendingRequests = [];
 
         // Fetch pending requests for each club
@@ -100,20 +154,28 @@ async function loadPendingRequests() {
                 const clubResponse = await fetch(`${apiUrl}/clubs/${club.id}`);
                 console.log("Club response status:", clubResponse.status);
                 
-                if (!clubResponse.ok) continue;
+                if (!clubResponse.ok) {
+                    console.warn(`Failed to fetch club ${club.id}:`, clubResponse.status);
+                    continue;
+                }
 
                 const clubData = await clubResponse.json();
-                console.log("Club data:", clubData);
-                console.log("Pending field:", clubData.pending);
+                console.log("Club data - pending field:", clubData.pending);
                 
-                const pendingIds = clubData.pending ? clubData.pending.split(',').filter(id => id.trim()) : [];
-                console.log("Pending IDs:", pendingIds);
+                // Safely parse pending IDs
+                let pendingIds = [];
+                if (clubData.pending && typeof clubData.pending === 'string' && clubData.pending.trim()) {
+                    pendingIds = clubData.pending.split(',')
+                        .map(id => id.trim())
+                        .filter(id => id && id !== '');
+                }
+                console.log("Parsed pending IDs:", pendingIds);
 
                 // Get user details for each pending request
                 for (const userId of pendingIds) {
                     try {
-                        console.log("Fetching user:", userId.trim());
-                        const userResponse = await fetch(`${apiUrl}/users/${userId.trim()}`);
+                        console.log("Fetching user:", userId);
+                        const userResponse = await fetch(`${apiUrl}/users/${userId}`);
                         console.log("User response status:", userResponse.status);
                         
                         if (userResponse.ok) {
@@ -127,13 +189,15 @@ async function loadPendingRequests() {
                                 userName: user.name,
                                 userEmail: user.email
                             });
+                        } else {
+                            console.warn(`Failed to fetch user ${userId}:`, userResponse.status);
                         }
                     } catch (e) {
                         console.error("Error fetching user:", userId, e);
                     }
                 }
             } catch (e) {
-                console.error("Error fetching club:", club.id, e);
+                console.error("Error fetching club data:", club.id, e);
             }
         }
 
@@ -150,6 +214,8 @@ async function loadPendingRequests() {
         allPendingRequests.forEach(request => {
             const div = document.createElement("div");
             div.className = "request-card";
+            // Escape userName to prevent injection issues with special characters
+            const escapedUserName = String(request.userName).replace(/'/g, "\\'");
             div.innerHTML = `
                 <h4>${request.userName}</h4>
                 <div class="request-info">
@@ -158,15 +224,15 @@ async function loadPendingRequests() {
                     <div><strong>User ID:</strong> #${request.userId}</div>
                 </div>
                 <div class="request-actions">
-                    <button class="btn-approve" onclick="approveRequest(${request.clubId}, ${request.userId}, '${request.userName}')">Approve</button>
-                    <button class="btn-reject" onclick="rejectRequest(${request.clubId}, ${request.userId}, '${request.userName}')">Reject</button>
+                    <button class="btn-approve" onclick="approveRequest(${request.clubId}, ${request.userId}, '${escapedUserName}')">Approve</button>
+                    <button class="btn-reject" onclick="rejectRequest(${request.clubId}, ${request.userId}, '${escapedUserName}')">Reject</button>
                 </div>
             `;
             container.appendChild(div);
         });
     } catch (err) {
-        console.error("Error loading pending requests:", err);
-        container.innerHTML = "<p style='color: red;'>Error loading pending requests</p>";
+        console.error("Unexpected error loading pending requests:", err);
+        container.innerHTML = "<p style='color: red;'>Unexpected error. Check console for details.</p>";
     }
 }
 
@@ -240,11 +306,27 @@ async function loadEvents() {
     }
 
     try {
-        const apiUrl = await getWorkingApiUrl();
+        let apiUrl;
+        try {
+            apiUrl = await getWorkingApiUrl();
+        } catch (e) {
+            console.error("Failed to get API URL:", e);
+            container.innerHTML = "<p style='text-align: center; color: #999;'>Unable to connect to server</p>";
+            return;
+        }
+        
         console.log("[LOAD EVENTS] apiUrl:", apiUrl);
         
         // Get all clubs for this admin
-        const clubsResponse = await fetch(`${apiUrl}/clubs?admin_id=${adminId}`);
+        let clubsResponse;
+        try {
+            clubsResponse = await fetch(`${apiUrl}/clubs?admin_id=${adminId}`);
+        } catch (e) {
+            console.error("[LOAD EVENTS] Failed to fetch clubs:", e);
+            container.innerHTML = "<p style='text-align: center; color: #999;'>Failed to load clubs</p>";
+            return;
+        }
+        
         console.log("[LOAD EVENTS] Clubs response status:", clubsResponse.status);
         
         if (!clubsResponse.ok) {
@@ -255,6 +337,13 @@ async function loadEvents() {
 
         const clubs = await clubsResponse.json();
         console.log("[LOAD EVENTS] Clubs retrieved:", clubs);
+        
+        if (!Array.isArray(clubs)) {
+            console.error("[LOAD EVENTS] Clubs response is not an array");
+            container.innerHTML = "<p style='text-align: center; color: #999;'>Invalid response format</p>";
+            return;
+        }
+        
         const adminClubIds = clubs.map(club => club.id);
         console.log("[LOAD EVENTS] Admin club IDs:", adminClubIds);
 
@@ -264,7 +353,15 @@ async function loadEvents() {
         }
 
         // Get all events
-        const eventsResponse = await fetch(`${apiUrl}/events`);
+        let eventsResponse;
+        try {
+            eventsResponse = await fetch(`${apiUrl}/events`);
+        } catch (e) {
+            console.error("[LOAD EVENTS] Failed to fetch events:", e);
+            container.innerHTML = "<p style='text-align: center; color: #999;'>Failed to load events</p>";
+            return;
+        }
+        
         if (!eventsResponse.ok) {
             console.error("[LOAD EVENTS] Failed to fetch events");
             container.innerHTML = "<p style='text-align: center; color: #999;'>No events yet</p>";
@@ -273,6 +370,12 @@ async function loadEvents() {
 
         const allEvents = await eventsResponse.json();
         console.log("[LOAD EVENTS] All events retrieved:", allEvents);
+
+        if (!Array.isArray(allEvents)) {
+            console.error("[LOAD EVENTS] Events response is not an array");
+            container.innerHTML = "<p style='text-align: center; color: #999;'>Invalid response format</p>";
+            return;
+        }
 
         // Filter events that belong to admin's clubs
         const adminEvents = allEvents.filter(event => adminClubIds.includes(event.club_id));
@@ -322,8 +425,8 @@ async function loadEvents() {
             }
         });
     } catch (err) {
-        console.error("Error loading events:", err);
-        container.innerHTML = "<p style='color: red;'>Error loading events</p>";
+        console.error("Unexpected error loading events:", err);
+        container.innerHTML = "<p style='color: red;'>Unexpected error. Check console for details.</p>";
     }
 }
 

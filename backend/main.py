@@ -509,7 +509,8 @@ def get_club(club_id: int, db: Session = Depends(get_db)):
         "activities": club.activities,
         "admin_id": club.admin_id,
         "member_count": member_count,
-        "social_links": club.social_links
+        "social_links": club.social_links,
+        "pending": club.pending or ""
     }
 
 @app.post("/clubs/{club_id}/join")

@@ -1,7 +1,7 @@
 let allEvents = [];
 let registeredEventIds = [];
 let attendedEventIds = [];
-const userId = localStorage.getItem('user_id');
+const userId = sessionStorage.getItem('user_id') || localStorage.getItem('user_id');
 
 // Load all events and registered events on page load
 window.addEventListener("DOMContentLoaded", async function() {

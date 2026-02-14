@@ -14,16 +14,27 @@ document.addEventListener('DOMContentLoaded', function() {
     loadPendingRequests();
 });
 
+// Reload data when user returns to the tab
+document.addEventListener("visibilitychange", function() {
+    if (document.visibilityState === "visible") {
+        console.log("User returned to tab, reloading requests...");
+        loadPendingRequests();
+    }
+});
+
 async function loadPendingRequests() {
     try {
+        const apiUrl = await getWorkingApiUrl();
+        
         // First, get all clubs for this admin
-        const clubsResponse = await fetch(`http://127.0.0.1:8000/clubs?admin_id=${adminId}`);
+        const clubsResponse = await fetch(`${apiUrl}/clubs?admin_id=${adminId}`);
         if (!clubsResponse.ok) throw new Error("Failed to load clubs");
         
         adminClubs = await clubsResponse.json();
 
         // Build club dropdown
         const clubFilter = document.getElementById('clubFilter');
+        clubFilter.innerHTML = '<option value="">All Clubs</option>';
         adminClubs.forEach(club => {
             const option = document.createElement('option');
             option.value = club.id;
@@ -35,7 +46,7 @@ async function loadPendingRequests() {
         allRequests = [];
         for (const club of adminClubs) {
             try {
-                const response = await fetch(`http://127.0.0.1:8000/clubs/${club.id}`);
+                const response = await fetch(`${apiUrl}/clubs/${club.id}`);
                 if (!response.ok) continue;
 
                 const clubData = await response.json();
@@ -46,7 +57,7 @@ async function loadPendingRequests() {
                     if (!userId.trim()) continue;
 
                     try {
-                        const userResponse = await fetch(`http://127.0.0.1:8000/users/${userId.trim()}`);
+                        const userResponse = await fetch(`${apiUrl}/users/${userId.trim()}`);
                         if (userResponse.ok) {
                             const user = await userResponse.json();
                             allRequests.push({
@@ -154,8 +165,9 @@ async function approveRequest(clubId, userId, userName) {
     }
 
     try {
+        const apiUrl = await getWorkingApiUrl();
         const response = await fetch(
-            `http://127.0.0.1:8000/clubs/${clubId}/approve/${userId}?admin_id=${adminId}`,
+            `${apiUrl}/clubs/${clubId}/approve/${userId}?admin_id=${adminId}`,
             { method: 'POST' }
         );
 
@@ -185,8 +197,9 @@ async function rejectRequest(clubId, userId, userName) {
     }
 
     try {
+        const apiUrl = await getWorkingApiUrl();
         const response = await fetch(
-            `http://127.0.0.1:8000/clubs/${clubId}/reject/${userId}?admin_id=${adminId}`,
+            `${apiUrl}/clubs/${clubId}/reject/${userId}?admin_id=${adminId}`,
             { method: 'POST' }
         );
 
