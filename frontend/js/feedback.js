@@ -1,11 +1,62 @@
 // Feedback Form Handler
 let currentFeedbackEventId = null;
 let currentEventTitle = null;
+let currentEventDate = null;
 
 // Function to open feedback modal
-function openFeedbackModal(eventId, eventTitle) {
+async function openFeedbackModal(eventId, eventTitle, eventDate) {
     currentFeedbackEventId = eventId;
     currentEventTitle = eventTitle;
+    currentEventDate = eventDate;
+    
+    // Check if event has passed
+    const eventDateTime = new Date(eventDate);
+    const now = new Date();
+    
+    if (eventDateTime > now) {
+        alert('Feedback can only be given after the event has ended.');
+        return;
+    }
+    
+    // Check if user is registered for this event
+    const userId = localStorage.getItem('user_id');
+    try {
+        const apiUrl = await getWorkingApiUrl();
+        const eventResponse = await fetch(`${apiUrl}/events/${eventId}`);
+        if (!eventResponse.ok) {
+            alert('Event not found');
+            return;
+        }
+        
+        const event = await eventResponse.json();
+        console.log("Event data:", event);
+        
+        const registeredUsers = event.registered_users 
+            ? event.registered_users.split(",").map(id => id.trim()).filter(id => id) 
+            : [];
+        
+        const userIdString = String(userId).trim();
+        
+        console.log("User ID from localStorage:", userIdString);
+        console.log("Registered users string:", event.registered_users);
+        console.log("Parsed registered users array:", registeredUsers);
+        console.log("Is user registered?", registeredUsers.includes(userIdString));
+        
+        if (!registeredUsers.includes(userIdString)) {
+            console.error("Registration check failed", {
+                userIdString,
+                registeredUsers,
+                eventId
+            });
+            alert('You must be registered for this event to provide feedback.');
+            return;
+        }
+    } catch (error) {
+        console.error('Error checking event registration:', error);
+        alert('Error verifying registration');
+        return;
+    }
+    
     document.getElementById('feedbackEventTitle').textContent = eventTitle;
     document.getElementById('feedbackModal').classList.add('show');
     // Reset rating
@@ -70,15 +121,9 @@ async function submitFeedback(e) {
 
     const userId = localStorage.getItem('user_id');
     const rating = document.getElementById('ratingValue').value;
-    const comment = document.getElementById('feedbackComment').value;
 
     if (!rating) {
         alert('Please select a rating');
-        return;
-    }
-
-    if (!comment.trim()) {
-        alert('Please enter a comment');
         return;
     }
 
@@ -93,7 +138,7 @@ async function submitFeedback(e) {
                 event_id: currentFeedbackEventId,
                 user_id: parseInt(userId),
                 rating: parseInt(rating),
-                comment: comment
+                comment: ""
             })
         });
 
@@ -295,7 +340,6 @@ function displayEventFeedback(data, eventTitle) {
                         <span class="user-name">${fb.user_name}</span>
                         <span class="feedback-rating">${'⭐'.repeat(fb.rating)}</span>
                     </div>
-                    <p class="feedback-comment">${fb.comment}</p>
                     <small class="feedback-date">${new Date(fb.created_at).toLocaleDateString()}</small>
                 </div>
             `;
@@ -379,7 +423,6 @@ function displayClubFeedback(feedback, totalRating, feedbackCount) {
                         <span class="feedback-rating">${'⭐'.repeat(fb.rating)}</span>
                     </div>
                     <p class="event-name">Event: ${fb.eventTitle}</p>
-                    <p class="feedback-comment">${fb.comment}</p>
                     <small class="feedback-date">${new Date(fb.created_at).toLocaleDateString()}</small>
                 </div>
             `;

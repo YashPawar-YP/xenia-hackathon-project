@@ -76,8 +76,7 @@ async function loadDashboardData() {
         // Update statistics
         document.getElementById('total-users').textContent = dashData.total_users;
         document.getElementById('total-students').textContent = dashData.total_students;
-        document.getElementById('total-admins').textContent = dashData.total_club_admins;
-        document.getElementById('total-clubs').textContent = dashData.total_clubs;
+        document.getElementById('total-admins').textContent = dashData.total_admins;
 
         // Load users
         await loadAllUsers();
@@ -173,7 +172,6 @@ async function loadAllUsers() {
                         ${user.role === 'club_admin' ? 'Club Admin' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                     </span>
                 </td>
-                <td style="text-align: center;">${user.clubs_managed}</td>
                 <td>
                     <div class="action-buttons">
                         ${actionButtons}

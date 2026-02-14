@@ -93,31 +93,7 @@ class Certificate(Base):
 Base.metadata.create_all(bind=engine)
 
 # ---------------------------
-# Create super admin if not exists
-# ---------------------------
-def create_super_admin():
-    db = SessionLocal()
-    try:
-        # Check if super admin exists
-        super_admin = db.query(User).filter(User.email == "admin@college.edu").first()
-        if not super_admin:
-            pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-            super_admin = User(
-                name="Super Admin",
-                email="admin@college.edu",
-                password_hash=pwd_context.hash("admin123".encode("utf-8")[:72]),
-                role="super_admin"
-            )
-            db.add(super_admin)
-            db.commit()
-            print("Super admin created: admin@college.edu / admin123")
-    finally:
-        db.close()
-
-create_super_admin()
-
-# ---------------------------
-# Password helper
+# Password helper (must be before super admin creation)
 # ---------------------------
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -128,6 +104,52 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     pw_bytes = plain_password.encode("utf-8")[:72]
     return pwd_context.verify(pw_bytes, hashed_password)
+
+# ---------------------------
+# Create super admin if not exists
+# ---------------------------
+def create_super_admin():
+    db = SessionLocal()
+    try:
+        # First, remove all other super admins to keep only one
+        super_admins = db.query(User).filter(User.role == "super_admin").all()
+        
+        if len(super_admins) > 1:
+            # Keep the first one, delete the rest
+            for admin in super_admins[1:]:
+                db.delete(admin)
+            db.commit()
+        
+        # Check if super admin exists
+        super_admin = db.query(User).filter(User.role == "super_admin").first()
+        
+        if not super_admin:
+            # Create new super admin
+            super_admin = User(
+                name="Super Admin",
+                email="admin@college.edu",
+                password_hash=hash_password("admin123"),
+                role="super_admin"
+            )
+            db.add(super_admin)
+            db.commit()
+            db.refresh(super_admin)
+            print(f"Super admin created: ID {super_admin.id}, admin@college.edu / admin123")
+        else:
+            # Reset existing super admin credentials
+            super_admin.email = "admin@college.edu"
+            super_admin.name = "Super Admin"
+            super_admin.password_hash = hash_password("admin123")
+            super_admin.role = "super_admin"
+            db.commit()
+            print(f"Super admin verified: ID {super_admin.id}, admin@college.edu / admin123")
+    except Exception as e:
+        print(f"Error creating super admin: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+create_super_admin()
 
 # ---------------------------
 # Schemas
@@ -161,6 +183,7 @@ class FeedbackCreate(BaseModel):
     event_id: int
     user_id: int
     rating: int
+    comment: Optional[str] = ""
     comment: str
 
 class MessageCreate(BaseModel):
@@ -387,14 +410,12 @@ def demote_from_club_admin(request: PromoteToAdminRequest, super_admin_id: int, 
 
 @app.get("/superadmin/dashboard")
 def super_admin_dashboard(super_admin_id: int, db: Session = Depends(get_db)):
-    """Super admin overview"""
+    """Super admin overview - only user and admin statistics"""
     is_super_admin(super_admin_id, db)
     
     total_users = db.query(User).count()
     total_students = db.query(User).filter(User.role == "student").count()
     total_club_admins = db.query(User).filter(User.role == "club_admin").count()
-    total_clubs = db.query(Club).count()
-    total_events = db.query(Event).count()
     
     # Recent registrations
     recent_users = db.query(User).order_by(User.id.desc()).limit(10).all()
@@ -403,9 +424,7 @@ def super_admin_dashboard(super_admin_id: int, db: Session = Depends(get_db)):
     return {
         "total_users": total_users,
         "total_students": total_students,
-        "total_club_admins": total_club_admins,
-        "total_clubs": total_clubs,
-        "total_events": total_events,
+        "total_admins": total_club_admins,
         "recent_users": recent_list
     }
 
@@ -413,9 +432,12 @@ def super_admin_dashboard(super_admin_id: int, db: Session = Depends(get_db)):
 # Club Routes
 # ---------------------------
 @app.post("/clubs")
-def create_club(club: ClubCreate, super_admin_id: int, db: Session = Depends(get_db)):
-    """Only super admin can create clubs and assign admins"""
-    is_super_admin(super_admin_id, db)
+def create_club(club: ClubCreate, admin_id: int, db: Session = Depends(get_db)):
+    """Admin or super admin can create clubs"""
+    # Verify the requesting user is either admin or super admin
+    user = db.query(User).filter(User.id == admin_id).first()
+    if not user or user.role not in ["club_admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Only admins can create clubs")
     
     if db.query(Club).filter(Club.name == club.name).first():
         raise HTTPException(status_code=409, detail="Club already exists")
@@ -447,8 +469,14 @@ def create_club(club: ClubCreate, super_admin_id: int, db: Session = Depends(get
     return {"message": "Club created", "club_id": new_club.id}
 
 @app.get("/clubs")
-def list_clubs(db: Session = Depends(get_db)):
-    clubs = db.query(Club).all()
+def list_clubs(admin_id: int = None, db: Session = Depends(get_db)):
+    if admin_id:
+        # Filter clubs by admin if admin_id is provided
+        clubs = db.query(Club).filter(Club.admin_id == int(admin_id)).all()
+    else:
+        # Return all clubs if no admin_id specified
+        clubs = db.query(Club).all()
+    
     result = []
     for club in clubs:
         members = club.members.split(",") if club.members else []
@@ -459,6 +487,7 @@ def list_clubs(db: Session = Depends(get_db)):
             "description": club.description,
             "objectives": club.objectives,
             "activities": club.activities,
+            "admin_id": club.admin_id,
             "member_count": member_count
         })
     return result
@@ -678,6 +707,7 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
         "location": event.location,
         "capacity": event.capacity,
         "registered_count": registered_count,
+        "registered_users": event.registered_users,
         "social_promo_text": event.social_promo_text
     }
 
@@ -782,17 +812,41 @@ def mark_attendance(event_id: int, user_id: int, admin_id: int, db: Session = De
 
 @app.delete("/events/{event_id}")
 def delete_event(event_id: int, admin_id: int, db: Session = Depends(get_db)):
+    print(f"[DELETE EVENT] event_id={event_id}, admin_id={admin_id}, admin_id type={type(admin_id)}")
+    
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
+        print(f"[DELETE EVENT] Event {event_id} not found")
         raise HTTPException(status_code=404, detail="Event not found")
     
-    club = db.query(Club).filter(Club.id == event.club_id).first()
-    if club.admin_id != admin_id:
-        raise HTTPException(status_code=403, detail="Only club admin can delete events")
+    # Verify admin user exists and has proper role
+    admin_user = db.query(User).filter(User.id == admin_id).first()
+    print(f"[DELETE EVENT] Admin user: {admin_user}, role: {admin_user.role if admin_user else 'NOT FOUND'}")
     
+    if not admin_user:
+        print(f"[DELETE EVENT] Admin user {admin_id} not found")
+        raise HTTPException(status_code=403, detail="Admin user not found")
+    
+    if admin_user.role not in ["club_admin", "super_admin"]:
+        print(f"[DELETE EVENT] Admin user has role '{admin_user.role}', not authorized")
+        raise HTTPException(status_code=403, detail=f"Only admins can delete events. Your role: {admin_user.role}")
+    
+    # Check if admin owns the club
+    club = db.query(Club).filter(Club.id == event.club_id).first()
+    print(f"[DELETE EVENT] Event's club_id={event.club_id}, club={club}, club.admin_id={club.admin_id if club else 'N/A'}")
+    
+    if not club:
+        print(f"[DELETE EVENT] Club {event.club_id} not found")
+        raise HTTPException(status_code=404, detail="Club not found")
+    
+    if club.admin_id != int(admin_id):
+        print(f"[DELETE EVENT] Authorization failed: club.admin_id={club.admin_id} != admin_id={int(admin_id)}")
+        raise HTTPException(status_code=403, detail=f"Only the club admin can delete this event. Club admin: {club.admin_id}, Your ID: {admin_id}")
+    
+    print(f"[DELETE EVENT] Deleting event {event_id}")
     db.delete(event)
     db.commit()
-    return {"message": "Event deleted"}
+    return {"message": "Event deleted successfully"}
 
 # ---------------------------
 # Certificates
@@ -865,9 +919,59 @@ def add_feedback(feedback: FeedbackCreate, db: Session = Depends(get_db)):
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    attended = event.attended_users.split(",") if event.attended_users else []
-    if str(feedback.user_id) not in attended:
-        raise HTTPException(status_code=403, detail="Only attendees can give feedback")
+    # Check if user is registered for the event
+    registered = event.registered_users.split(",") if event.registered_users else []
+    if str(feedback.user_id) not in registered:
+        raise HTTPException(status_code=403, detail="Only registered users can give feedback")
+    
+    # Check if event has passed
+    try:
+        from datetime import datetime as dt
+        event_date_str = event.event_date.strip() if event.event_date else ""
+        
+        # Remove 'Z' timezone indicator and milliseconds for parsing
+        event_date_str = event_date_str.replace('Z', '').replace('+00:00', '')
+        
+        # Handle milliseconds
+        if '.' in event_date_str:
+            # Split on the dot and keep only the date part
+            event_date_str = event_date_str.split('.')[0]
+        
+        # Try multiple date formats
+        event_datetime = None
+        date_formats = [
+            "%Y-%m-%dT%H:%M:%S",  # ISO format without timezone
+            "%Y-%m-%d %H:%M:%S",  # Space separated
+            "%Y-%m-%d",            # Date only
+        ]
+        
+        for fmt in date_formats:
+            try:
+                event_datetime = dt.strptime(event_date_str, fmt)
+                break
+            except ValueError:
+                continue
+        
+        if event_datetime is None:
+            print(f"[FEEDBACK] Could not parse date: {event.event_date}")
+            raise ValueError(f"Could not parse date: {event.event_date}")
+        
+        if event_datetime > dt.now():
+            raise HTTPException(status_code=403, detail="Feedback can only be given after the event")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[FEEDBACK] Date parsing error: {str(e)}, event_date: {event.event_date}")
+        raise HTTPException(status_code=400, detail=f"Invalid event date format: {event.event_date}")
+    
+    # Check if user already gave feedback
+    existing_feedback = db.query(Feedback).filter(
+        Feedback.event_id == feedback.event_id,
+        Feedback.user_id == feedback.user_id
+    ).first()
+    
+    if existing_feedback:
+        raise HTTPException(status_code=400, detail="You have already submitted feedback for this event")
     
     new_feedback = Feedback(
         event_id=feedback.event_id,
@@ -879,7 +983,7 @@ def add_feedback(feedback: FeedbackCreate, db: Session = Depends(get_db)):
     db.add(new_feedback)
     db.commit()
     
-    return {"message": "Feedback submitted"}
+    return {"message": "Feedback submitted successfully"}
 
 @app.get("/events/{event_id}/feedback")
 def get_feedback(event_id: int, db: Session = Depends(get_db)):
@@ -893,17 +997,72 @@ def get_feedback(event_id: int, db: Session = Depends(get_db)):
             "id": fb.id,
             "user_name": user.name if user else "Anonymous",
             "rating": fb.rating,
-            "comment": fb.comment,
             "created_at": fb.created_at
         })
         total_rating += fb.rating
     
-    avg_rating = total_rating / len(feedbacks) if feedbacks else 0
+    average_rating = (total_rating / len(feedbacks)) if feedbacks else 0
     
     return {
-        "feedback": result,
-        "average_rating": round(avg_rating, 1),
-        "total_feedback": len(feedbacks)
+        "feedbacks": result,
+        "total_feedbacks": len(feedbacks),
+        "average_rating": round(average_rating, 2)
+    }
+
+@app.get("/admin/events/{event_id}/feedback-stats")
+def get_event_feedback_stats(event_id: int, admin_id: int, db: Session = Depends(get_db)):
+    """Get feedback statistics for an event (admin only)"""
+    try:
+        is_club_admin(admin_id, db)
+    except HTTPException as e:
+        print(f"[FEEDBACK STATS] Authorization failed for admin {admin_id}: {e.detail}")
+        raise
+    
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        print(f"[FEEDBACK STATS] Event {event_id} not found")
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Check if admin owns the club (optional but recommended)
+    club = db.query(Club).filter(Club.id == event.club_id).first()
+    if club and club.admin_id != int(admin_id):
+        print(f"[FEEDBACK STATS] Admin {admin_id} does not own club {club.id}")
+        raise HTTPException(status_code=403, detail="You don't have permission to view this event's feedback")
+    
+    feedbacks = db.query(Feedback).filter(Feedback.event_id == event_id).all()
+    
+    if not feedbacks:
+        return {
+            "event_id": event_id,
+            "total_feedbacks": 0,
+            "average_rating": 0,
+            "ratings_breakdown": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+            "feedbacks": []
+        }
+    
+    # Calculate ratings breakdown
+    ratings_breakdown = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    total_rating = 0
+    feedbacks_list = []
+    
+    for fb in feedbacks:
+        user = db.query(User).filter(User.id == fb.user_id).first()
+        ratings_breakdown[fb.rating] += 1
+        total_rating += fb.rating
+        feedbacks_list.append({
+            "user_name": user.name if user else "Anonymous",
+            "rating": fb.rating,
+            "created_at": fb.created_at
+        })
+    
+    average_rating = total_rating / len(feedbacks) if feedbacks else 0
+    
+    return {
+        "event_id": event_id,
+        "total_feedbacks": len(feedbacks),
+        "average_rating": round(average_rating, 2),
+        "ratings_breakdown": ratings_breakdown,
+        "feedbacks": feedbacks_list
     }
 
 # ---------------------------

@@ -24,7 +24,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            const response = await fetch("http://127.0.0.1:8000/clubs", {
+            const apiUrl = await getWorkingApiUrl();
+            const response = await fetch(`${apiUrl}/clubs?admin_id=${adminId}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -44,7 +45,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Redirect back to admin dashboard
                 window.location.href = "admin.html";
             } else {
-                alert("Failed to add club: " + (data.detail || "Unknown error"));
+                const errorMessage = typeof data.detail === 'object' 
+                    ? JSON.stringify(data.detail) 
+                    : (data.detail || "Unknown error");
+                alert("Failed to add club: " + errorMessage);
             }
         } catch (err) {
             alert("Error: " + err.message);

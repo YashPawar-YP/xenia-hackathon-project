@@ -132,7 +132,7 @@ function displayEvents(eventsToDisplay) {
 
                     <div class="event-actions">
                         ${canGiveFeedback
-                            ? `<button class="feedback-btn" onclick="openFeedbackModal(${event.id}, '${event.title.replace(/'/g, "\\'")}')" title="Share your feedback">⭐ Leave Feedback</button>`
+                            ? `<button class="feedback-btn" onclick="openFeedbackModal(${event.id}, '${event.title.replace(/'/g, "\\'")}'${event.event_date ? `, '${event.event_date.replace(/'/g, "\\'")}'` : ''})" title="Share your feedback">⭐ Leave Feedback</button>`
                             : ''
                         }
                         ${isRegistered && !canGiveFeedback

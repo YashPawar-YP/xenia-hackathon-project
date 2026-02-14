@@ -232,6 +232,7 @@ async function loadEvents() {
     if (!container) return;
 
     const adminId = localStorage.getItem('user_id');
+    console.log("[LOAD EVENTS] adminId from localStorage:", adminId, "type:", typeof adminId);
     
     if (!adminId) {
         container.innerHTML = "<p style='text-align: center; color: #999;'>Please log in</p>";
@@ -240,17 +241,22 @@ async function loadEvents() {
 
     try {
         const apiUrl = await getWorkingApiUrl();
+        console.log("[LOAD EVENTS] apiUrl:", apiUrl);
         
         // Get all clubs for this admin
         const clubsResponse = await fetch(`${apiUrl}/clubs?admin_id=${adminId}`);
+        console.log("[LOAD EVENTS] Clubs response status:", clubsResponse.status);
         
         if (!clubsResponse.ok) {
+            console.error("[LOAD EVENTS] Failed to fetch clubs");
             container.innerHTML = "<p style='text-align: center; color: #999;'>No events yet</p>";
             return;
         }
 
         const clubs = await clubsResponse.json();
+        console.log("[LOAD EVENTS] Clubs retrieved:", clubs);
         const adminClubIds = clubs.map(club => club.id);
+        console.log("[LOAD EVENTS] Admin club IDs:", adminClubIds);
 
         if (adminClubIds.length === 0) {
             container.innerHTML = "<p style='text-align: center; color: #999;'>Create a club first to add events</p>";
@@ -260,14 +266,17 @@ async function loadEvents() {
         // Get all events
         const eventsResponse = await fetch(`${apiUrl}/events`);
         if (!eventsResponse.ok) {
+            console.error("[LOAD EVENTS] Failed to fetch events");
             container.innerHTML = "<p style='text-align: center; color: #999;'>No events yet</p>";
             return;
         }
 
         const allEvents = await eventsResponse.json();
+        console.log("[LOAD EVENTS] All events retrieved:", allEvents);
 
         // Filter events that belong to admin's clubs
         const adminEvents = allEvents.filter(event => adminClubIds.includes(event.club_id));
+        console.log("[LOAD EVENTS] Filtered admin events:", adminEvents);
 
         container.innerHTML = "";
 
@@ -285,6 +294,9 @@ async function loadEvents() {
             const eventDate = new Date(event.event_date);
             const formattedDate = eventDate.toLocaleString();
             
+            // Check if event has passed
+            const hasEventPassed = eventDate < new Date();
+            
             div.innerHTML = `
                 <h4>${event.title}</h4>
                 <div class="event-details">
@@ -296,13 +308,79 @@ async function loadEvents() {
                     <span>📍 ${event.location}</span>
                     <span>👥 ${event.registered_count}/${event.capacity}</span>
                 </div>
+                ${hasEventPassed ? `<div style="padding: 12px; background-color: #f5f5f5; border-radius: 6px; margin: 10px 0;">
+                    <p style="margin: 0 0 8px 0; font-weight: 600;">📊 Feedback Stats</p>
+                    <div id="feedback-stats-${event.id}" style="color: #666; font-size: 13px;">Loading feedback...</div>
+                </div>` : '<p style="color: #999; font-size: 13px; margin: 10px 0;">💬 Feedback will be available after event</p>'}
                 <button class="btn-delete-event" onclick="deleteEvent(${event.id}, '${event.title}')">Delete Event</button>
             `;
             container.appendChild(div);
+            
+            // Load feedback stats if event has passed
+            if (hasEventPassed) {
+                loadFeedbackStats(event.id, adminId, apiUrl);
+            }
         });
     } catch (err) {
         console.error("Error loading events:", err);
         container.innerHTML = "<p style='color: red;'>Error loading events</p>";
+    }
+}
+
+// Load feedback stats for an event
+async function loadFeedbackStats(eventId, adminId, apiUrl) {
+    try {
+        const url = `${apiUrl}/admin/events/${eventId}/feedback-stats?admin_id=${adminId}`;
+        console.log("Loading feedback stats from:", url, "adminId:", adminId);
+        
+        const response = await fetch(url);
+        console.log("Feedback stats response status:", response.status);
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+            console.error("Feedback stats error:", response.status, errorData);
+            const statsDiv = document.getElementById(`feedback-stats-${eventId}`);
+            if (statsDiv) {
+                statsDiv.innerHTML = `<span style="color: red;">Error: ${errorData.detail || 'Failed to load'}</span>`;
+            }
+            return;
+        }
+        
+        const stats = await response.json();
+        console.log("Feedback stats data:", stats);
+        
+        const statsDiv = document.getElementById(`feedback-stats-${eventId}`);
+        if (!statsDiv) {
+            console.error(`Element with id 'feedback-stats-${eventId}' not found in DOM`);
+            return;
+        }
+        
+        if (!stats || stats.total_feedbacks === 0) {
+            statsDiv.innerHTML = '<em>No feedback yet</em>';
+            return;
+        }
+        
+        // Safely access ratings breakdown (keys are strings in JSON)
+        const breakdown = stats.ratings_breakdown || {};
+        let breakdownHtml = `
+            <strong>⭐ Average: ${stats.average_rating || 0}/5</strong> (${stats.total_feedbacks || 0} responses)<br>
+            <div style="margin-top: 8px; font-size: 12px;">
+                5⭐: ${breakdown["5"] || breakdown[5] || 0} | 
+                4⭐: ${breakdown["4"] || breakdown[4] || 0} | 
+                3⭐: ${breakdown["3"] || breakdown[3] || 0} | 
+                2⭐: ${breakdown["2"] || breakdown[2] || 0} | 
+                1⭐: ${breakdown["1"] || breakdown[1] || 0}
+            </div>
+        `;
+        
+        console.log("Setting HTML for feedback stats");
+        statsDiv.innerHTML = breakdownHtml;
+    } catch (error) {
+        console.error("Error loading feedback stats:", error);
+        const statsDiv = document.getElementById(`feedback-stats-${eventId}`);
+        if (statsDiv) {
+            statsDiv.innerHTML = `<span style="color: red;">Error: ${error.message}</span>`;
+        }
     }
 }
 
@@ -333,119 +411,3 @@ async function deleteEvent(eventId, eventTitle) {
         alert("Error deleting event");
     }
 }
-
-// Populate feedback event dropdown
-async function populateEventDropdown() {
-    const adminId = localStorage.getItem('user_id');
-    const select = document.getElementById('feedbackEventSelect');
-    
-    if (!select || !adminId) return;
-    
-    try {
-        const apiUrl = await getWorkingApiUrl();
-        
-        // Get admin's clubs
-        const clubsResponse = await fetch(`${apiUrl}/clubs?admin_id=${adminId}`);
-        const clubs = await clubsResponse.json();
-        const adminClubIds = clubs.map(c => c.id);
-        
-        // Get all events
-        const eventsResponse = await fetch(`${apiUrl}/events`);
-        const allEvents = await eventsResponse.json();
-        
-        // Filter to show only events from admin's clubs
-        const adminEvents = allEvents.filter(e => adminClubIds.includes(e.club_id));
-        
-        // Clear and populate dropdown
-        select.innerHTML = '<option value="">Select an event...</option>';
-        
-        adminEvents.forEach(event => {
-            const option = document.createElement('option');
-            option.value = event.id;
-            option.textContent = `${event.title} (${event.club_name})`;
-            select.appendChild(option);
-        });
-        
-        console.log("Populated event dropdown with", adminEvents.length, "events");
-    } catch (error) {
-        console.error("Error populating event dropdown:", error);
-        select.innerHTML = '<option value="">Error loading events</option>';
-    }
-}
-
-// Load and display feedback for selected event
-async function loadSelectedEventFeedback() {
-    const select = document.getElementById('feedbackEventSelect');
-    const eventId = select.value;
-    const container = document.getElementById('feedbackContainer');
-    
-    if (!eventId) {
-        alert('Please select an event first');
-        return;
-    }
-    
-    try {
-        const apiUrl = await getWorkingApiUrl();
-        const response = await fetch(`${apiUrl}/events/${eventId}/feedback`);
-        
-        if (!response.ok) {
-            container.innerHTML = '<p style="color: #999; text-align: center;">No feedback yet for this event</p>';
-            return;
-        }
-        
-        const feedbacks = await response.json();
-        
-        if (!feedbacks || feedbacks.length === 0) {
-            container.innerHTML = '<p style="color: #999; text-align: center;">No feedback yet for this event</p>';
-            return;
-        }
-        
-        // Calculate summary
-        const avgRating = (feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length).toFixed(1);
-        
-        // Display summary
-        let html = `
-            <div class="feedback-summary">
-                <h3>Feedback Summary</h3>
-                <p><strong>Average Rating:</strong> ${avgRating} / 5 ⭐</p>
-                <p><strong>Total Feedback:</strong> ${feedbacks.length}</p>
-            </div>
-            <div class="feedback-list">
-        `;
-        
-        // Display individual feedbacks
-        feedbacks.forEach(feedback => {
-            const stars = '⭐'.repeat(feedback.rating) + '☆'.repeat(5 - feedback.rating);
-            html += `
-                <div class="feedback-item">
-                    <div class="feedback-header">
-                        <strong>${feedback.user_name}</strong>
-                        <span class="feedback-rating">${stars} (${feedback.rating}/5)</span>
-                    </div>
-                    <div class="feedback-comment">${feedback.comment}</div>
-                    <small style="color: #999;">${new Date(feedback.created_at).toLocaleString()}</small>
-                </div>
-            `;
-        });
-        
-        html += '</div>';
-        container.innerHTML = html;
-    } catch (error) {
-        console.error("Error loading feedback:", error);
-        container.innerHTML = '<p style="color: red;">Error loading feedback</p>';
-    }
-}
-
-// Reload event dropdown
-async function reloadEventDropdown() {
-    await populateEventDropdown();
-    document.getElementById('feedbackEventSelect').value = '';
-    document.getElementById('feedbackContainer').innerHTML = '';
-}
-
-// Initialize feedback dropdown on page load
-window.addEventListener("DOMContentLoaded", function() {
-    setTimeout(() => {
-        populateEventDropdown();
-    }, 1000); // Wait for other things to load first
-});
